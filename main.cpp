@@ -12,8 +12,7 @@
 
 using namespace std;
 
-void bCond(double x[], double y[], double z[], double xOLD[],
-        double yOLD[], double zOLD[], double l, int n){
+void bCond(double x[], double y[], double z[], double l, int n){
     
        for(int i=0; i<n; i++){
         if(x[i]<0){            
@@ -33,8 +32,8 @@ void bCond(double x[], double y[], double z[], double xOLD[],
                 x[i]=x[i]-l*round(x[i]/l)+l;
             }
         }
-        
         if(y[i]<0){
+        
            if(fmod(abs(y[i]),l)<l/2){
                 y[i]=y[i]-l*round(y[i]/l)+l;
             }
@@ -149,8 +148,25 @@ void forces(double x[], double y[], double z[], double fx[],
     
 }
 
-void init(double x[], double y[], double z[], double xOLD[],
-        double yOLD[], double zOLD[], double m[], double mass, 
+void halfstep(double x[], double y[], double z[], double vx[], double vy[], 
+        double vz[], double fx[], double fy[], double fz[], double mass, 
+        double dt, int n){
+
+    for(int i=0; i<n; i++){
+        vx[i]=vx[i]+0.5*dt*fx[i]/mass;
+        vy[i]=vy[i]+0.5*dt*fy[i]/mass;
+        vz[i]=vz[i]+0.5*dt*fz[i]/mass;
+    }
+
+    for(int i=0; i<n; i++){
+        x[i]=x[i]+dt*vx[i];
+        y[i]=y[i]+dt*vy[i];
+        z[i]=z[i]+dt*vz[i];
+    }
+}
+
+void init(double x[], double y[], double z[], double vx[],
+        double vy[], double vz[], double m[], double mass, 
         double l, double dt, double temp, int n){
     
     double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
@@ -164,9 +180,6 @@ void init(double x[], double y[], double z[], double xOLD[],
     double a=l/N; //spacing
         
     int p=0; //number of particles placed
-    double vx[n]; //temporary holders for velocity
-    double vy[n];
-    double vz[n];
     
     for(int i=0; i<N; i++){
         for(int j=0; j<N; j++){
@@ -206,10 +219,6 @@ void init(double x[], double y[], double z[], double xOLD[],
         vx[i]=(vx[i]-sumvx)*fsx;
         vy[i]=(vy[i]-sumvy)*fsy;
         vz[i]=(vy[i]-sumvz)*fsz;
-
-        xOLD[i]=x[i]-vx[i]*dt;
-        yOLD[i]=y[i]-vy[i]*dt;
-        zOLD[i]=z[i]-vz[i]*dt;
     }           
 }
 
@@ -300,6 +309,44 @@ void verlet(double x[], double y[], double z[], double xOLD[],
     K=0.5*m[0]*K; //Just assuming one mass for now
 }
 
+void verletLeapfrog(double x[], double y[], double z[], double vx[],
+        double vy[], double vz[], double fx[], double fy[], double fz[],
+        double mass, double& K, double dt, int n, double& sumvx, 
+        double& sumvy, double& sumvz, double l, int loop){
+    
+    double dtSqr=dt*dt;
+    double dt2=2*dt;
+    double xNEW, yNEW, zNEW, vxi, vyi, vzi;
+    K=0; sumvx=0; sumvy=0; sumvz=0;
+    
+    for(int i=0; i<n; i++){
+
+        vxi=vx[i]; //save old velocities for energy calculation
+        vyi=vy[i];
+        vzi=vz[i];
+
+        vx[i]=vx[i]+dt*fx[i]/mass;
+        vy[i]=vy[i]+dt*fy[i]/mass;
+        vz[i]=vz[i]+dt*fz[i]/mass;
+
+        vxi=0.5*(vxi+vx[i]);
+        vyi=0.5*(vyi+vy[i]);
+        vzi=0.5*(vzi+vz[i]);
+        
+        x[i]=x[i]+dt*vx[i];
+        y[i]=y[i]+dt*vy[i];
+        z[i]=z[i]+dt*vz[i];
+                       
+        K=K+vxi*vxi+vyi*vyi+vzi*vzi;
+        
+        sumvx=sumvx+vxi;//velocity of the center of mass
+        sumvy=sumvy+vyi;
+        sumvz=sumvz+vzi;
+    }
+
+    K=0.5*mass*K; //Just assuming one mass for now
+}
+
 void writeXYZ(double x[], double y[], double z[], int n){
     ofstream o;
     o.open("test.xyz",ios::app);
@@ -328,7 +375,7 @@ int main(int argc, char** argv) {
     //Particle info
     double mass=6.6335209*pow(10,-11);
     //Storage
-    double x[n],y[n],z[n],xOLD[n],yOLD[n],zOLD[n],m[n],
+    double x[n],y[n],z[n],vx[n],vy[n],vz[n],m[n],
             fx[n], fy[n], fz[n];
     //Simulation box length
     double l=10.229*0.00034;
@@ -343,19 +390,24 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     
-    init(x, y, z, xOLD, yOLD, zOLD, m, mass, l, dT, temp, n); 
-    writeXYZ(x,y,z,n);
+    init(x, y, z, vx, vy, vz, m, mass, l, dT, temp, n); 
+    writeXYZ(x, y, z, n);
+    forces(x, y, z, fx, fy, fz, V, l, P, kB, T, n);
+    halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
+    bCond(x, y, z, l, n);
+    writeXYZ(x, y, z, n);
+
 //    for(int f=0; f<n; f++){
 //        cout << "x" << f<< ": " << x[f] << " y: " << y[f] << " z: " << z[f] <<endl; 
 //    }
     
-    for(int i=0; i<tau; i++){
+    for(int i=2; i<tau; i++){
         forces(x, y, z, fx, fy, fz, V, l, P, kB, T, n);
         
-        verlet(x, y, z, xOLD, yOLD, zOLD, fx, fy, fz, m, K, dT, n, 
+        verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
                sumvx, sumvy, sumvz, l, i);
         
-        bCond(x, y, z, xOLD, yOLD, zOLD, l, n);
+        bCond(x, y, z, l, n);
         
         writeXYZ(x,y,z,n);
         
