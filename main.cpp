@@ -149,6 +149,87 @@ void forces(double x[], double y[], double z[], double fx[],
     
 }
 
+void gbForces(double x[], double y[], double z[], double fx[],
+        double fy[], double fz[], double ex[], double ey[], double ez[],
+        double& V, double l, double& P, double kB, double T, int n){
+    
+    double mu, nu;
+    double dx, dy, dz;
+    double sigmaE, sigmaS, epsilonE, epsilonS;
+    double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
+    double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
+    double chiPrime=(pow(kappaPrime,2)-1)/(pow(kappaPrime,2)+1);
+    double rc, rc2; //cuttoff
+    double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
+    double g, gPrime, gHalf;
+    double R, R_1, R_2, R_6, distF;
+    double ePrime, edPrime;
+    
+    V=0;
+    P=0;
+    
+    for(int i=0; i<n; i++){
+        fx[i]=0;
+        fy[i]=0;
+        fz[i]=0;
+    }
+    
+    for(int i=0; i<n-1; i++){
+        for(int j=i+1; j<n; j++){
+            
+            dx=x[i]-x[j]; //components of distance vector
+            dy=y[i]-y[j];
+            dz=z[i]-z[j];
+            
+            dx=dx-l*round(dx/l); //correct for min image convention
+            dy=dy-l*round(dy/l); //from frenkel... we'll see how this goes
+            dz=dz-l*round(dz/l);
+            
+            double r2=dx*dx+dy*dy+dz*dz;
+            double r=pow(r2,0.5);
+            
+            if(r2<rc2){
+                dot1=dx*ex[i]+dy*ey[i]+dz*ez[i];
+                dot2=dx*ex[j]+dy*ey[j]+dz*ez[j];
+                dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
+                
+                dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
+                dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
+                
+                g=1-(chi/2^r2)*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
+                gPrime=g=1-(chiPrime/2^r2)*((dotSum2/(1+chiPrime*dot12))+
+                        (dotDif2/(1-chiPrime*dot12)));
+                gHalf=pow(g,0.5);
+                
+                distF=sigmaS/gHalf;
+                
+                R=(r-distF+sigmaS)/sigmaS;
+                R_1=1/R;
+                R_2=R_1*R_1;
+                R_6=R_2*R_2*R_2;
+                
+                edPrime=1/pow(1-chi*chi*dot122,0.5);
+                
+                
+                fxi=frp*dx; //forces between the pairs
+                fyi=frp*dy;
+                fzi=frp*dz;
+                
+                fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
+                fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
+                fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
+                
+                V=V+4.0*epsilon*fr6*(fr6-1.0);
+                P=P+fxi*dx+fyi*dy+fzi*dz;
+            }
+        }
+    }
+    
+    P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3; P=P/(l*l*l*pow(10,-18));
+    //converted to Pa
+    
+}
+
 void init(double x[], double y[], double z[], double xOLD[],
         double yOLD[], double zOLD[], double m[], double mass, 
         double l, double dt, double temp, int n){
@@ -329,7 +410,7 @@ int main(int argc, char** argv) {
     double mass=6.6335209*pow(10,-11);
     //Storage
     double x[n],y[n],z[n],xOLD[n],yOLD[n],zOLD[n],m[n],
-            fx[n], fy[n], fz[n];
+            fx[n], fy[n], fz[n], ex[], ey[], ez[];
     //Simulation box length
     double l=10.229*0.00034;
     //Kinetic/Potential/Total Energy;
