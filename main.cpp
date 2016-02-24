@@ -148,6 +148,7 @@ void forces(double x[], double y[], double z[], double fx[],
     
 }
 
+<<<<<<< HEAD
 void halfstep(double x[], double y[], double z[], double vx[], double vy[], 
         double vz[], double fx[], double fy[], double fz[], double mass, 
         double dt, int n){
@@ -165,8 +166,107 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
     }
 }
 
-void init(double x[], double y[], double z[], double vx[],
-        double vy[], double vz[], double m[], double mass, 
+void gbForces(double x[], double y[], double z[], double fx[],
+        double fy[], double fz[], double ex[], double ey[], double ez[],
+        double& V, double l, double& P, double kB, double T, int n){
+    
+    double mu, nu;
+    double dx, dy, dz;
+    double sigmaE, sigmaS, epsilonE, epsilonS;
+    double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
+    double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
+    double chiPrime=(pow(kappaPrime,2)-1)/(pow(kappaPrime,2)+1);
+    double rc, rc2; //cuttoff
+    double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
+    double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
+    double R, R_1, R_2, R_6, distF;
+    double ePrime;
+    
+    V=0;
+    P=0;
+    
+    for(int i=0; i<n; i++){
+        fx[i]=0;
+        fy[i]=0;
+        fz[i]=0;
+    }
+    
+    for(int i=0; i<n-1; i++){
+        for(int j=i+1; j<n; j++){
+            
+            dx=x[i]-x[j]; //components of distance vector
+            dy=y[i]-y[j];
+            dz=z[i]-z[j];
+            
+            dx=dx-l*round(dx/l); //correct for min image convention
+            dy=dy-l*round(dy/l); //from frenkel... we'll see how this goes
+            dz=dz-l*round(dz/l);
+            
+            double r2=dx*dx+dy*dy+dz*dz;
+            double r=pow(r2,0.5);
+            
+            if(r2<rc2){
+                dot1=dx*ex[i]+dy*ey[i]+dz*ez[i];
+                dot2=dx*ex[j]+dy*ey[j]+dz*ez[j];
+                dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
+                
+                dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
+                dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
+                
+                g=1-(chi/2^r2)*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
+                gPrime=g=1-(chiPrime/2^r2)*((dotSum2/(1+chiPrime*dot12))+
+                        (dotDif2/(1-chiPrime*dot12))); //epsilon
+                gHalf=pow(g,0.5);
+                
+                distF=sigmaS/gHalf;
+                
+                R=(r-distF+sigmaS)/sigmaS;
+                R_1=1/R;
+                R_2=R_1*R_1;
+                R_6=R_2*R_2*R_2;
+                
+                ePrime=1/pow(1-chi*chi*dot122,0.5);
+                
+                dgx=-(chi/r2)((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))*(ex[i]-ex[j])
+                    +dx*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgy=-(chi/r2)((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))*(ey[i]-ey[j])
+                    +dy*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgz=-(chi/r2)((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))*(ez[i]-ez[j])
+                    +dz*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+
+                dgxPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ex[i]+ex[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ex[i]-ex[j])+dx*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgyPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ey[i]+ey[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ey[i]-ey[j])+dy*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgzPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ez[i]-ez[j])+dz*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                
+
+                fxi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dx+(sigmaS/2)
+                    *gHalf*gHalf*gHalf*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime; //forces between the pairs
+                fyi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dy+(sigmaS/2)
+                    *gHalf*gHalf*gHalf*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime;;
+                fzi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dz+(sigmaS/2)
+                    *gHalf*gHalf*gHalf*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime;;
+                
+                fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
+                fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
+                fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
+                
+                V=V+4.0*epsilonS*pow(ePrime,nu)*pow(gPrime,mu)*R_6*(R_6-1.0);
+                P=P+fxi*dx+fyi*dy+fzi*dz;//pressure
+            }
+        }
+    }
+    
+    P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3; P=P/(l*l*l*pow(10,-18));
+    //converted to Pa
+    
+}
+
+void init(double x[], double y[], double z[], double xOLD[],
+        double yOLD[], double zOLD[], double m[], double mass, 
+>>>>>>> origin/gay-berne
         double l, double dt, double temp, int n){
     
     double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
