@@ -161,9 +161,9 @@ void gbForces(double x[], double y[], double z[], double fx[],
     double chiPrime=(pow(kappaPrime,2)-1)/(pow(kappaPrime,2)+1);
     double rc, rc2; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
-    double g, gPrime, gHalf;
+    double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, distF;
-    double ePrime, edPrime;
+    double ePrime;
     
     V=0;
     P=0;
@@ -198,7 +198,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 
                 g=1-(chi/2^r2)*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
                 gPrime=g=1-(chiPrime/2^r2)*((dotSum2/(1+chiPrime*dot12))+
-                        (dotDif2/(1-chiPrime*dot12)));
+                        (dotDif2/(1-chiPrime*dot12))); //epsilon
                 gHalf=pow(g,0.5);
                 
                 distF=sigmaS/gHalf;
@@ -208,19 +208,36 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 R_2=R_1*R_1;
                 R_6=R_2*R_2*R_2;
                 
-                edPrime=1/pow(1-chi*chi*dot122,0.5);
+                ePrime=1/pow(1-chi*chi*dot122,0.5);
                 
+                dgx=-(chi/r2)((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))*(ex[i]-ex[j])
+                    +dx*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgy=-(chi/r2)((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))*(ey[i]-ey[j])
+                    +dy*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgz=-(chi/r2)((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))*(ez[i]-ez[j])
+                    +dz*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+
+                dgxPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ex[i]+ex[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ex[i]-ex[j])+dx*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgyPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ey[i]+ey[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ey[i]-ey[j])+dy*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgzPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ez[i]-ez[j])+dz*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
                 
-                fxi=frp*dx; //forces between the pairs
-                fyi=frp*dy;
-                fzi=frp*dz;
+
+                fxi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dx+(sigmaS/2)
+                    *gHalf*gHalf*gHalf*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime; //forces between the pairs
+                fyi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dy+(sigmaS/2)
+                    *gHalf*gHalf*gHalf*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime;;
+                fzi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dz+(sigmaS/2)
+                    *gHalf*gHalf*gHalf*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime;;
                 
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
                 
-                V=V+4.0*epsilon*fr6*(fr6-1.0);
-                P=P+fxi*dx+fyi*dy+fzi*dz;
+                V=V+4.0*epsilonS*pow(ePrime,nu)*pow(gPrime,mu)*R_6*(R_6-1.0);
+                P=P+fxi*dx+fyi*dy+fzi*dz;//pressure
             }
         }
     }
