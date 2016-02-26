@@ -148,7 +148,6 @@ void forces(double x[], double y[], double z[], double fx[],
     
 }
 
-<<<<<<< HEAD
 void halfstep(double x[], double y[], double z[], double vx[], double vy[], 
         double vz[], double fx[], double fy[], double fz[], double mass, 
         double dt, int n){
@@ -170,17 +169,18 @@ void gbForces(double x[], double y[], double z[], double fx[],
         double fy[], double fz[], double ex[], double ey[], double ez[],
         double& V, double l, double& P, double kB, double T, int n){
     
-    double mu, nu;
+    double mu=2, nu=1;
     double dx, dy, dz;
-    double sigmaE, sigmaS, epsilonE, epsilonS;
+    double sigmaE=3, sigmaS=1, epsilonE=1, epsilonS=5;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
     double chiPrime=(pow(kappaPrime,2)-1)/(pow(kappaPrime,2)+1);
-    double rc, rc2; //cuttoff
+    double rc=3*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, distF;
     double ePrime;
+    double fxi, fyi, fzi;
     
     V=0;
     P=0;
@@ -213,9 +213,8 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
                 dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
                 
-                g=1-(chi/2^r2)*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
-                gPrime=g=1-(chiPrime/2^r2)*((dotSum2/(1+chiPrime*dot12))+
-                        (dotDif2/(1-chiPrime*dot12))); //epsilon
+                g=1-(chi/(2*r2))*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
+                gPrime=g=1-(chiPrime/(2*r2)*((dotSum2/(1+chiPrime*dot12))+(dotDif2/(1-chiPrime*dot12)))); //epsilon
                 gHalf=pow(g,0.5);
                 
                 distF=sigmaS/gHalf;
@@ -227,27 +226,27 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 
                 ePrime=1/pow(1-chi*chi*dot122,0.5);
                 
-                dgx=-(chi/r2)((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))*(ex[i]-ex[j])
-                    +dx*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
-                dgy=-(chi/r2)((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))*(ey[i]-ey[j])
-                    +dy*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
-                dgz=-(chi/r2)((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))*(ez[i]-ez[j])
-                    +dz*chi/(r2*r2)(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgx=-(chi/r2)*((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))
+                    *(ex[i]-ex[j])+dx*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgy=-(chi/r2)*((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))
+                    *(ey[i]-ey[j])+dy*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+                dgz=-(chi/r2)*((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))
+                    *(ez[i]-ez[j])+dz*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
 
-                dgxPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ex[i]+ex[j])+(dotDif/(1-chiPrime*dot12))
-                    *(ex[i]-ex[j])+dx*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
-                dgyPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ey[i]+ey[j])+(dotDif/(1-chiPrime*dot12))
-                    *(ey[i]-ey[j])+dy*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
-                dgzPrime=-(chiPrime/r2)((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
-                    *(ez[i]-ez[j])+dz*chiPrime/(r2*r2)(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgxPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ex[i]+ex[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ex[i]-ex[j])+dx*chiPrime/(r2*r2)*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgyPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ey[i]+ey[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ey[i]-ey[j])+dy*chiPrime/(r2*r2)*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
+                dgzPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
+                    *(ez[i]-ez[j])+dz*chiPrime/(r2*r2)*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
                 
 
                 fxi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dx+(sigmaS/2)
-                    *gHalf*gHalf*gHalf*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime; //forces between the pairs
+                    *gHalf*gHalf*gHalf*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime); //forces between the pairs
                 fyi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dy+(sigmaS/2)
-                    *gHalf*gHalf*gHalf*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime;;
+                    *gHalf*gHalf*gHalf*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime);
                 fzi=-4*epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*((1/sigmaS)*r/dz+(sigmaS/2)
-                    *gHalf*gHalf*gHalf*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime;;
+                    *gHalf*gHalf*gHalf*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime);
                 
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
@@ -264,17 +263,19 @@ void gbForces(double x[], double y[], double z[], double fx[],
     
 }
 
-void init(double x[], double y[], double z[], double xOLD[],
-        double yOLD[], double zOLD[], double m[], double mass, 
->>>>>>> origin/gay-berne
-        double l, double dt, double temp, int n){
+void init(double x[], double y[], double z[], double vx[],
+        double vy[], double vz[], double ex[], double ey[], double ez[],
+        double m[], double mass, double l, double dt, double temp, int n){
     
     double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
     double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
     
     for(int i=0; i<n; i++){
         m[i]=mass;
-    }//initialize mass for a system of 1 gas
+        ex[i]=0;
+        ey[i]=0;
+        ez[i]=1;
+    }
     
     int N=ceil(pow(n,1.0/3.0)); //Third root of n to find # of particles in a direction
     double a=l/N; //spacing
@@ -475,7 +476,7 @@ int main(int argc, char** argv) {
     //Particle info
     double mass=6.6335209*pow(10,-11);
     //Storage
-    double x[n],y[n],z[n],vx[n],vy[n],vz[n],m[n],
+    double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n],m[n],
             fx[n], fy[n], fz[n];
     //Simulation box length
     double l=10.229*0.00034;
@@ -490,9 +491,9 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     
-    init(x, y, z, vx, vy, vz, m, mass, l, dT, temp, n); 
+    init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
     writeXYZ(x, y, z, n);
-    forces(x, y, z, fx, fy, fz, V, l, P, kB, T, n);
+    gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n);
     halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
     bCond(x, y, z, l, n);
     writeXYZ(x, y, z, n);
@@ -502,7 +503,7 @@ int main(int argc, char** argv) {
 //    }
     
     for(int i=2; i<tau; i++){
-        forces(x, y, z, fx, fy, fz, V, l, P, kB, T, n);
+        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n);
         
         verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
                sumvx, sumvy, sumvz, l, i);
