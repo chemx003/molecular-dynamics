@@ -171,11 +171,11 @@ void gbForces(double x[], double y[], double z[], double fx[],
     
     double mu=2, nu=1;
     double dx, dy, dz;
-    double sigmaE=3, sigmaS=1, epsilonE=1, epsilonS=5;
+    double sigmaE=0.001131, sigmaS=0.000377, epsilonE=68.74632, epsilonS=22.915442;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
     double chiPrime=(pow(kappaPrime,2)-1)/(pow(kappaPrime,2)+1);
-    double rc=3*sigmaS, rc2=rc*rc; //cuttoff
+    double rc=2.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, distF;
@@ -206,7 +206,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
             double r=pow(r2,0.5);
             
             if(r2<rc2){
-                dot1=dx*ex[i]+dy*ey[i]+dz*ez[i];
+                dot1=dx*ex[i]+dy*ey[i]+dz*ez[i]; cout<<"dot1: "<<dot1<<endl;
                 dot2=dx*ex[j]+dy*ey[j]+dz*ez[j];
                 dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
                 
@@ -251,7 +251,6 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
-                
                 V=V+4.0*epsilonS*pow(ePrime,nu)*pow(gPrime,mu)*R_6*(R_6-1.0);
                 P=P+fxi*dx+fyi*dy+fzi*dz;//pressure
             }
@@ -470,20 +469,20 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=864;
     //Time information
-    int tau=1001; //Number of time steps
+    int tau=1; //Number of time steps
     double dT=pow(10,-11); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
-    double mass=6.6335209*pow(10,-11);
+    double mass=3.9243880*pow(10,-4);
     //Storage
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n],m[n],
             fx[n], fy[n], fz[n];
     //Simulation box length
-    double l=10.229*0.00034;
+    double l=13.92477*0.000377;
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=90;
+    double temp=166.05;
     //Boltzmann Const;
     double kB=0.0138064852;
     //momentum
