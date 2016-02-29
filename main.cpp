@@ -201,37 +201,39 @@ void gbForces(double x[], double y[], double z[], double fx[],
             dx=dx-l*round(dx/l); //correct for min image convention
             dy=dy-l*round(dy/l); //from frenkel... we'll see how this goes
             dz=dz-l*round(dz/l);
-            
+
             double r2=dx*dx+dy*dy+dz*dz;
             double r=pow(r2,0.5);
             
             if(r2<rc2){
-                dot1=dx*ex[i]+dy*ey[i]+dz*ez[i]; cout<<"dot1: "<<dot1<<endl;
+                dot1=dx*ex[i]+dy*ey[i]+dz*ez[i]; 
                 dot2=dx*ex[j]+dy*ey[j]+dz*ez[j];
                 dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
                 
                 dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
                 dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
-                
+
                 g=1-(chi/(2*r2))*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
                 gPrime=g=1-(chiPrime/(2*r2)*((dotSum2/(1+chiPrime*dot12))+(dotDif2/(1-chiPrime*dot12)))); //epsilon
                 gHalf=pow(g,0.5);
-                
+
                 distF=sigmaS/gHalf;
-                
+
                 R=(r-distF+sigmaS)/sigmaS;
                 R_1=1/R;
                 R_2=R_1*R_1;
                 R_6=R_2*R_2*R_2;
-                
+
                 ePrime=1/pow(1-chi*chi*dot122,0.5);
-                
+
                 dgx=-(chi/r2)*((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))
                     *(ex[i]-ex[j])+dx*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
                 dgy=-(chi/r2)*((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))
                     *(ey[i]-ey[j])+dy*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
                 dgz=-(chi/r2)*((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))
                     *(ez[i]-ez[j])+dz*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12)));
+
+                cout << "dgz" << i << j << ": " << dgz << endl;
 
                 dgxPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ex[i]+ex[j])+(dotDif/(1-chiPrime*dot12))
                     *(ex[i]-ex[j])+dx*chiPrime/(r2*r2)*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12)));
@@ -497,36 +499,36 @@ int main(int argc, char** argv) {
     bCond(x, y, z, l, n);
     writeXYZ(x, y, z, n);
 
-//    for(int f=0; f<n; f++){
-//        cout << "x" << f<< ": " << x[f] << " y: " << y[f] << " z: " << z[f] <<endl; 
-//    }
+// //    for(int f=0; f<n; f++){
+// //        cout << "x" << f<< ": " << x[f] << " y: " << y[f] << " z: " << z[f] <<endl; 
+// //    }
     
-    for(int i=2; i<tau; i++){
-        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n);
+//     for(int i=2; i<tau; i++){
+//         gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n);
         
-        verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
-               sumvx, sumvy, sumvz, l, i);
+//         verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
+//                sumvx, sumvy, sumvz, l, i);
         
-        bCond(x, y, z, l, n);
+//         bCond(x, y, z, l, n);
         
-        writeXYZ(x,y,z,n);
+//         writeXYZ(x,y,z,n);
         
-        E=K+V; //in scaled units
-        temp=2*K/(3*n*kB); //in kelvin
+//         E=K+V; //in scaled units
+//         temp=2*K/(3*n*kB); //in kelvin
         
-        if(i%100==0){            
-            cout << "Loop# " << i << endl;
-            cout << "V: " << V << endl;
-            cout << "K: " << K << endl;
-            cout << "E: " << E << endl;
-            cout << "T: " << temp << endl;
-            cout << "P: " << P << endl << endl;
+//         if(i%100==0){            
+//             cout << "Loop# " << i << endl;
+//             cout << "V: " << V << endl;
+//             cout << "K: " << K << endl;
+//             cout << "E: " << E << endl;
+//             cout << "T: " << temp << endl;
+//             cout << "P: " << P << endl << endl;
             
-            if(E>0){
-                largeForce(x,y,z,fx,fy,fz,E,n);
-            }
-        }
-    }
-    pairCor(x,y,z,n,l);
+//             if(E>0){
+//                 largeForce(x,y,z,fx,fy,fz,E,n);
+//             }
+//         }
+//     }
+//     pairCor(x,y,z,n,l);
 }
 
