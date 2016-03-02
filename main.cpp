@@ -73,7 +73,7 @@ void bCond(double x[], double y[], double z[], double l, int n){
 void largeForce(double x[], double y[], double z[], double fx[], double fy[],
         double fz[], double E, int n){
     ofstream o;
-    o.open("large_pos_debug.dat");
+    o.open("large_force.dat");
     o << "#" << "\t" << "x" << "\t" << "fx" << "\t" << E << endl;
     
     for(int i=0; i<n; i++){
@@ -87,65 +87,6 @@ void largeForce(double x[], double y[], double z[], double fx[], double fy[],
 double dRand(double dMin, double dMax){
     double d = (double)rand()/RAND_MAX;
     return dMin + d*(dMax-dMin);
-}
-
-void forces(double x[], double y[], double z[], double fx[],
-        double fy[], double fz[], double& V, double l, double& P, 
-        double kB, double T, int n){
-    
-    double sigma=.00034, epsilon=1.656768, rc=2.25*sigma;
-    double sigma2=sigma*sigma, rc2=rc*rc;
-    double ecut;//discrepancy in sources
-    double dx, dy, dz;
-    double fr2, fr6, frp;
-    double fxi, fyi, fzi;
-    
-    V=0;
-    P=0;
-    
-    for(int i=0; i<n; i++){
-        fx[i]=0;
-        fy[i]=0;
-        fz[i]=0;
-    }
-    
-    for(int i=0; i<n-1; i++){
-        for(int j=i+1; j<n; j++){
-            
-            dx=x[i]-x[j]; //components of distance vector
-            dy=y[i]-y[j];
-            dz=z[i]-z[j];
-            
-            dx=dx-l*round(dx/l); //correct for min image convention
-            dy=dy-l*round(dy/l); //from frenkel... we'll see how this goes
-            dz=dz-l*round(dz/l);
-            
-            double r2=dx*dx+dy*dy+dz*dz;
-            
-            //cout << sqrt(r2) << endl;
-            
-            if(r2<rc2){
-                fr2=sigma2/r2;
-                fr6=pow(fr2,3);
-                frp=48*epsilon*fr6*(fr6-0.5)/r2;
-                
-                fxi=frp*dx; //forces between the pairs
-                fyi=frp*dy;
-                fzi=frp*dz;
-                
-                fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
-                fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
-                fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
-                
-                V=V+4.0*epsilon*fr6*(fr6-1.0);
-                P=P+fxi*dx+fyi*dy+fzi*dz;
-            }
-        }
-    }
-    
-    P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3; P=P/(l*l*l*pow(10,-18));
-    //converted to Pa
-    
 }
 
 void halfstep(double x[], double y[], double z[], double vx[], double vy[], 
@@ -171,15 +112,15 @@ void gbForces(double x[], double y[], double z[], double fx[],
     
     double mu=2, nu=1;
     double dx, dy, dz;
-    double sigmaE=0.001131, sigmaS=0.000377, epsilonE=68.74632, epsilonS=22.915442;
+    double sigmaE=0.0081, sigmaS=0.00027, epsilonE=1.38064851, epsilonS=6.9032426;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
     double chiPrime=(pow(kappaPrime,1/mu)-1)/(pow(kappaPrime,1/mu)+1);
-    double rc=2.25*sigmaS, rc2=rc*rc; //cuttoff
+    double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, distF;
-    double ePrime;
+    double ePrime=0;
     double fxi, fyi, fzi;
     
     V=0;
@@ -209,7 +150,6 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 dot1=dx*ex[i]+dy*ey[i]+dz*ez[i]; 
                 dot2=dx*ex[j]+dy*ey[j]+dz*ez[j];
                 dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
-                
                 dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
                 dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
 
@@ -227,7 +167,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 ePrime=1/pow(1-chi*chi*dot122,0.5);
 
                 dgx=-(chi/r2)*((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))
-                        *(ex[i]-ex[j]))+dx*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12));
+                    *(ex[i]-ex[j]))+dx*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12));
                 dgy=-(chi/r2)*((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))
                     *(ey[i]-ey[j]))+dy*chi/(r2*r2)*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12));
                 dgz=-(chi/r2)*((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))
@@ -246,7 +186,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
                     *gHalf*gHalf*gHalf*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime);
                 fzi=-epsilonS*pow(ePrime,nu)*(pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)
                     *gHalf*gHalf*gHalf*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime);
-                        
+                
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
@@ -266,6 +206,7 @@ void init(double x[], double y[], double z[], double vx[],
         double m[], double mass, double l, double dt, double temp, int n){
     
     double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
+    double sumx=0.0, sumy=0.0, sumz=0.0; // for debugging get rid of later
     double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
     
     for(int i=0; i<n; i++){
@@ -317,8 +258,8 @@ void init(double x[], double y[], double z[], double vx[],
     for(int i=0; i<n; i++){
         vx[i]=(vx[i]-sumvx)*fsx;
         vy[i]=(vy[i]-sumvy)*fsy;
-        vz[i]=(vy[i]-sumvz)*fsz;
-    }           
+        vz[i]=(vz[i]-sumvz)*fsz;
+    }
 }
 
 double pairCor(double x[], double y[], double z[], int n, double l){
@@ -365,49 +306,6 @@ double pairCor(double x[], double y[], double z[], int n, double l){
     
 }
 
-void verlet(double x[], double y[], double z[], double xOLD[],
-        double yOLD[], double zOLD[], double fx[], double fy[], double fz[],
-        double m[], double& K, double dt, int n, double& sumvx, 
-        double& sumvy, double& sumvz, double l, int loop){
-    
-    double dtSqr=dt*dt;
-    double dt2=2*dt;
-    double xNEW, yNEW, zNEW, vxi, vyi, vzi;
-    K=0; sumvx=0; sumvy=0; sumvz=0;
-    
-    for(int i=0; i<n; i++){
-        if(x[i]-xOLD[i]>l-0.00001){
-            x[i]=x[i]-l;
-        }//kind of works...
-        
-        xNEW=2.0*x[i]-xOLD[i]+dtSqr*fx[i]/m[i];
-        yNEW=2.0*y[i]-yOLD[i]+dtSqr*fy[i]/m[i];
-        zNEW=2.0*z[i]-zOLD[i]+dtSqr*fz[i]/m[i];
-        
-        vxi=(xNEW-xOLD[i])/dt2;
-        vyi=(yNEW-yOLD[i])/dt2;
-        vzi=(zNEW-zOLD[i])/dt2;
-        
-        //cout << vxi << endl;
-                       
-        K=K+vxi*vxi+vyi*vyi+vzi*vzi;
-        
-        if(vxi>2000000){
-            cout << i<< ": " << vxi <<"\t"<< loop << endl;
-            cout << xNEW << "\t" << xOLD[i] <<"\t"<<x[i]<< endl << endl;
-        }
-        
-        sumvx=sumvx+vxi;//velocity of the center of mass
-        sumvy=sumvy+vyi;
-        sumvz=sumvz+vzi;
-        
-        xOLD[i]=x[i]; yOLD[i]=y[i]; zOLD[i]=z[i];
-        x[i]=xNEW; y[i]=yNEW; z[i]=zNEW;
-    }
-
-    K=0.5*m[0]*K; //Just assuming one mass for now
-}
-
 void verletLeapfrog(double x[], double y[], double z[], double vx[],
         double vy[], double vz[], double fx[], double fy[], double fz[],
         double mass, double& K, double dt, int n, double& sumvx, 
@@ -442,7 +340,7 @@ void verletLeapfrog(double x[], double y[], double z[], double vx[],
         sumvy=sumvy+vyi;
         sumvz=sumvz+vzi;
     }
-
+    //cout << "(" << sumvx << "," << sumvy << "," << sumvz << ")" << endl;
     K=0.5*mass*K; //Just assuming one mass for now
 }
 
@@ -468,21 +366,21 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=864;
     //Time information
-    int tau=pow(10,3); //Number of time steps
+    int tau=pow(10,4); //Number of time steps
     double dT=pow(10,-11); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
-    double mass=3.9243880*pow(10,-10);
+    double mass=4.27*pow(10,-10);
     //Storage
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n],m[n],
             fx[n], fy[n], fz[n];
     //Simulation box length
-    double l=13.92477*0.000377;
+    double l=13.92477*0.00027;
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=160;
-    //Boltzmann Cons     t;
+    double temp=390;
+    //Boltzmann Cons     
     double kB=0.0138064852;
     //momentum
     double sumvx, sumvy, sumvz;
@@ -517,9 +415,9 @@ int main(int argc, char** argv) {
             cout << "T: " << temp << endl;
             cout << "P: " << P << endl << endl;
             
-            if(E>0){
-                 largeForce(x,y,z,fx,fy,fz,E,n);
-            }
+            // if(E>0){
+            //      largeForce(x,y,z,fx,fy,fz,E,n);
+            // }
          }
      }
      pairCor(x,y,z,n,l);
