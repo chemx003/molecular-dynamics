@@ -112,7 +112,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
     
     double mu=2, nu=1;
     double dx, dy, dz;
-    double sigmaE=0.0081, sigmaS=0.00027, epsilonE=1.38064851, epsilonS=6.9032426;
+    double sigmaE=0.00081, sigmaS=0.00027, epsilonE=1.1045188, epsilonS=5.5225941;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
     double chiPrime=(pow(kappaPrime,1/mu)-1)/(pow(kappaPrime,1/mu)+1);
@@ -120,7 +120,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, distF;
-    double ePrime=0;
+    double ePrime;
     double fxi, fyi, fzi;
     
     V=0;
@@ -180,9 +180,12 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 dgzPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
                     *(ez[i]-ez[j]))+(dz*chiPrime/(r2*r2))*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12));
                 
-                fxi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dx/r+(sigmaS/2)/(gHalf*gHalf*gHalf)*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime); //forces between the pairs
-                fyi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dy/r+(sigmaS/2)/(gHalf*gHalf*gHalf)*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime);
-                fzi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)/(gHalf*gHalf*gHalf)*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime);
+                fxi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dx/r+(sigmaS/2)
+                    /(gHalf*gHalf*gHalf)*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime); //forces between the pairs
+                fyi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dy/r+(sigmaS/2)
+                    /(gHalf*gHalf*gHalf)*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime);
+                fzi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)
+                    /(gHalf*gHalf*gHalf)*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime);
                 
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
@@ -208,9 +211,9 @@ void init(double x[], double y[], double z[], double vx[],
     
     for(int i=0; i<n; i++){
         m[i]=mass;
-        ex[i]=0;
+        ex[i]=1;
         ey[i]=0;
-        ez[i]=1;
+        ez[i]=0;
     }
     
     int N=ceil(pow(n,1.0/3.0)); //Third root of n to find # of particles in a direction
@@ -345,7 +348,7 @@ void verletLeapfrog(double x[], double y[], double z[], double vx[],
 
 void writeXYZ(double x[], double y[], double z[], int n){
     ofstream o;
-    o.open("test.xyz",ios::app);
+    o.open("test1.xyz",ios::app);
     double t,j,k;
     
     o << 863 << endl;
@@ -365,7 +368,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=864;
     //Time information
-    int tau=pow(10,4); //Number of time steps
+    int tau=2.5*pow(10,4); //Number of time steps
     double dT=pow(10,-11); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
