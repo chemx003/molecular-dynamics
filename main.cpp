@@ -108,11 +108,11 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 
 void gbForces(double x[], double y[], double z[], double fx[],
         double fy[], double fz[], double ex[], double ey[], double ez[],
-        double& V, double l, double& P, double kB, double T, int n){
-    
+        double& V, double l, double& P, double kB, double T, int n, int loop){
+    //1.1045188 0.00081
     double mu=2, nu=1;
     double dx, dy, dz;
-    double sigmaE=0.00081, sigmaS=0.00027, epsilonE=1.1045188, epsilonS=5.5225941;
+    double sigmaE=0.00027*1.01, sigmaS=0.00027, epsilonE=5.5225941*0.99, epsilonS=5.5225941;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
     double chiPrime=(pow(kappaPrime,1/mu)-1)/(pow(kappaPrime,1/mu)+1);
@@ -120,7 +120,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, distF;
-    double ePrime;
+    double ePrime, ePn, gPm, gPm1;
     double fxi, fyi, fzi;
     
     V=0;
@@ -152,11 +152,11 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
                 dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
                 dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
-
+                
                 g=1-(chi/(2*r2))*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
                 gPrime=1-(chiPrime/(2*r2))*((dotSum2/(1+chiPrime*dot12))+(dotDif2/(1-chiPrime*dot12))); //epsilon
                 gHalf=pow(g,0.5);
-
+                
                 distF=sigmaS/gHalf;
 
                 R=(r-distF+sigmaS)/sigmaS;
@@ -180,13 +180,20 @@ void gbForces(double x[], double y[], double z[], double fx[],
                 dgzPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
                     *(ez[i]-ez[j]))+(dz*chiPrime/(r2*r2))*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12));
                 
-                fxi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dx/r+(sigmaS/2)
-                    /(gHalf*gHalf*gHalf)*dgx)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgxPrime); //forces between the pairs
-                fyi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dy/r+(sigmaS/2)
-                    /(gHalf*gHalf*gHalf)*dgy)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgyPrime);
-                fzi=-epsilonS*(pow(ePrime,nu)*pow(gPrime,mu)*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)
-                    /(gHalf*gHalf*gHalf)*dgz)+mu*pow(gPrime,mu-1)*R_6*(R_6-1)*dgzPrime);
+                ePn=pow(ePrime,nu);
+                gPm=pow(gPrime,mu);
+                gPm1=pow(gPrime,mu-1);
                 
+                fxi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dx/r+(sigmaS/2)
+                    /(gHalf*gHalf*gHalf)*dgx)+mu*gPm1*R_6*(R_6-1)*dgxPrime); //forces between the pairs
+                fyi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dy/r+(sigmaS/2)
+                    /(gHalf*gHalf*gHalf)*dgy)+mu*gPm1*R_6*(R_6-1)*dgyPrime);
+                fzi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)
+                    /(gHalf*gHalf*gHalf)*dgz)+mu*gPm1*R_6*(R_6-1)*dgzPrime);
+//                if(fxi>1000){
+//                        cout<<"fx("<< loop <<"," <<i << " " << j<< "): " <<fxi<<endl;
+//                        cout<<"r: "<< r<< endl;
+//                }
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
@@ -266,11 +273,11 @@ void init(double x[], double y[], double z[], double vx[],
 double pairCor(double x[], double y[], double z[], int n, double l){
     int bins=160;
     double histo[bins][2]; //forty bins
-    double R,dR=0.00034/40;
+    double R,dR=0.00027/40;//need to change numerator depending on particle!!!
     double dx, dy, dz;
     
     for(int b=0; b<bins; b++){
-        histo[b][0]=R/0.00034;
+        histo[b][0]=R/0.00027;
         
         for(int i=0; i<n-1; i++){
             for(int j=i+1; j<n; j++){
@@ -295,7 +302,7 @@ double pairCor(double x[], double y[], double z[], int n, double l){
     }
     
     ofstream o;
-    o.open("pair-correlation.data");
+    o.open("sAn-gb-pair-correlation.data");
     R=dR;
     for(int i=1; i<bins; i++){
         histo[i][1]=histo[i][1]*2/(4*3.1415*pow(R,2)*dR*864*864/(pow(10.229*0.00034,3))); //added factor of two to scale... but i'll need to look at this again
@@ -348,7 +355,7 @@ void verletLeapfrog(double x[], double y[], double z[], double vx[],
 
 void writeXYZ(double x[], double y[], double z[], int n){
     ofstream o;
-    o.open("test1.xyz",ios::app);
+    o.open("aAn-gb.xyz",ios::app);
     double t,j,k;
     
     o << 863 << endl;
@@ -368,8 +375,8 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=864;
     //Time information
-    int tau=2.5*pow(10,4); //Number of time steps
-    double dT=pow(10,-11); //Length of time step ** used a smaller step
+    int tau=100*pow(10,3); //Number of time steps
+    double dT=pow(10,-10); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
     double mass=4.27*pow(10,-10);
@@ -381,7 +388,7 @@ int main(int argc, char** argv) {
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=390;
+    double temp=1600;
     //Boltzmann Cons     
     double kB=0.0138064852;
     //momentum
@@ -391,7 +398,7 @@ int main(int argc, char** argv) {
     
     init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
     writeXYZ(x, y, z, n);
-    gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n);
+    gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
 //    cout<< "x: " << x[135]<< " vx: " << vx[135] << " fx: " << fx[135] <<endl<<endl;
     halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
 //    cout<< "x: " << x[135]<< " vx: " << vx[135] << " fx: " << fx[135] <<endl<<endl;
@@ -399,7 +406,7 @@ int main(int argc, char** argv) {
     writeXYZ(x, y, z, n);
 
     for(int i=2; i<tau; i++){
-        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n);
+        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, i);
         
         verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
                     sumvx, sumvy, sumvz, l, i);
