@@ -110,9 +110,9 @@ void gbForces(double x[], double y[], double z[], double fx[],
         double fy[], double fz[], double ex[], double ey[], double ez[],
         double& V, double l, double& P, double kB, double T, int n, int loop){
     //1.1045188 0.00081
-    double mu=2, nu=1;
+    double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=0.00027*1.01, sigmaS=0.00027, epsilonE=5.5225941*0.99, epsilonS=5.5225941;
+    double sigmaE=2.4, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
     double chiPrime=(pow(kappaPrime,1/mu)-1)/(pow(kappaPrime,1/mu)+1);
@@ -190,14 +190,26 @@ void gbForces(double x[], double y[], double z[], double fx[],
                     /(gHalf*gHalf*gHalf)*dgy)+mu*gPm1*R_6*(R_6-1)*dgyPrime);
                 fzi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)
                     /(gHalf*gHalf*gHalf)*dgz)+mu*gPm1*R_6*(R_6-1)*dgzPrime);
-//                if(fxi>1000){
-//                        cout<<"fx("<< loop <<"," <<i << " " << j<< "): " <<fxi<<endl;
-//                        cout<<"r: "<< r<< endl;
+                
+//                if(fyi>1){
+//                        cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
+//                        cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
+//                        cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
+//                        cout<<"r: "<< r << " (" << dx << "," << dy << "," << dz << ")" << endl;
+//                        cout<<"dot 1: "<< dot1 << " dot 2: " << dot2 << " dot12: " << dot12 << endl;
+//                        cout<<"distF: "<< distF << " chi: " << chi << " chiPrime " << chiPrime << endl;
+//                        cout<<"g: " << g << " gPrime: " << gPrime << " ePrime: " << ePn << endl;
+//                        cout<<"gHalf: " << gHalf << endl;
+//                        cout<<"dg: ("<< dgx <<"," << dgy << ", " << dgz << ")" << endl; 
+//                        cout<<"dgPrime: (" << dgxPrime << "," << dgyPrime << "," << dgzPrime << ")" << endl;
+//                        cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
 //                }
+                
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
-                V=V+4.0*epsilonS*pow(ePrime,nu)*pow(gPrime,mu)*R_6*(R_6-1.0);
+                V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
+                //cout<<V<<endl;
                 P=P+fxi*dx+fyi*dy+fzi*dz;//pressure
             }
         }
@@ -218,8 +230,8 @@ void init(double x[], double y[], double z[], double vx[],
     
     for(int i=0; i<n; i++){
         m[i]=mass;
-        ex[i]=1;
-        ey[i]=0;
+        ex[i]=0;
+        ey[i]=1;
         ez[i]=0;
     }
     
@@ -232,9 +244,9 @@ void init(double x[], double y[], double z[], double vx[],
         for(int j=0; j<N; j++){
             for(int k=0; k<N; k++){
                 if(p<n){
-                    x[p]=(i+0.5)*a;
-                    y[p]=(j+0.5)*a;
-                    z[p]=(k+0.5)*a;
+                    x[p]=(i+0.5+dRand(-0.01,0.01))*a;
+                    y[p]=(j+0.5+dRand(-0.01,0.01))*a;
+                    z[p]=(k+0.5+dRand(-0.01,0.01))*a;
                 
                     vx[p]=dRand(-0.5,0.5); 
                     vy[p]=dRand(-0.5,0.5); 
@@ -271,13 +283,14 @@ void init(double x[], double y[], double z[], double vx[],
 }
 
 double pairCor(double x[], double y[], double z[], int n, double l){
-    int bins=160;
+    int bins=180;
     double histo[bins][2]; //forty bins
-    double R,dR=0.00027/40;//need to change numerator depending on particle!!!
+    double R=0;
+    double dR=1.0/30;//need to change numerator depending on particle!!!
     double dx, dy, dz;
     
     for(int b=0; b<bins; b++){
-        histo[b][0]=R/0.00027;
+        histo[b][0]=R;
         
         for(int i=0; i<n-1; i++){
             for(int j=i+1; j<n; j++){
@@ -302,11 +315,11 @@ double pairCor(double x[], double y[], double z[], int n, double l){
     }
     
     ofstream o;
-    o.open("sAn-gb-pair-correlation.data");
-    R=dR;
+    o.open("rpc-k2.4.data");
+    R=0;
     for(int i=1; i<bins; i++){
-        histo[i][1]=histo[i][1]*2/(4*3.1415*pow(R,2)*dR*864*864/(pow(10.229*0.00034,3))); //added factor of two to scale... but i'll need to look at this again
-        if(histo[i][1]<20 && histo[i][1]>0)
+        histo[i][1]=histo[i][1]*2/(4*3.1415*pow(R,2)*dR*256*256/(l*l*l)); //added factor of two.. need to count each particle
+        if(histo[i][1]<100 && histo[i][1]>0)
             o << histo[i][0] << "\t" << histo[i][1] << "\n";
         R=R+dR;
     }
@@ -338,6 +351,8 @@ void verletLeapfrog(double x[], double y[], double z[], double vx[],
         vyi=0.5*(vyi+vy[i]);
         vzi=0.5*(vzi+vz[i]);
         
+        //cout << vxi << endl;
+        
         x[i]=x[i]+dt*vx[i];
         y[i]=y[i]+dt*vy[i];
         z[i]=z[i]+dt*vz[i];
@@ -355,16 +370,16 @@ void verletLeapfrog(double x[], double y[], double z[], double vx[],
 
 void writeXYZ(double x[], double y[], double z[], int n){
     ofstream o;
-    o.open("aAn-gb.xyz",ios::app);
+    o.open("reduced-k2.4.xyz",ios::app); //I should make this a setting in main())
     double t,j,k;
     
-    o << 863 << endl;
+    o << 255 << endl;
     
     for(int i=0; i<n; i++){
 
-        t=x[i]*10000;
-        j=y[i]*10000;
-        k=z[i]*10000;
+        t=x[i]*100;
+        j=y[i]*100;
+        k=z[i]*100;
         o << "Ar" << "\t" <<  t << "\t" << j << "\t" << k << "\n";
         
     }
@@ -373,24 +388,24 @@ void writeXYZ(double x[], double y[], double z[], int n){
 
 int main(int argc, char** argv) {
     //Number of particles
-    int n=864;
+    int n=256;
     //Time information
-    int tau=100*pow(10,3); //Number of time steps
+    int tau=10000;//10*pow(10,3); //Number of time steps
     double dT=pow(10,-10); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
-    double mass=4.27*pow(10,-10);
+    double mass=1;
     //Storage
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n],m[n],
             fx[n], fy[n], fz[n];
     //Simulation box length
-    double l=13.92477*0.00027;
+    double l=9.283177667;
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=1600;
+    double temp=3;
     //Boltzmann Cons     
-    double kB=0.0138064852;
+    double kB=0.0025;
     //momentum
     double sumvx, sumvy, sumvz;
     //pressure
@@ -416,7 +431,7 @@ int main(int argc, char** argv) {
         writeXYZ(x,y,z,n);
         
         E=K+V; //in scaled units
-        temp=2*K/(3*n*kB); //in kelvin
+        temp=2*K/(3*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
         
         if(i%100==0){            
             cout << "Loop# " << i << endl;
