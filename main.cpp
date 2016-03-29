@@ -113,7 +113,7 @@ void gbForces(double x[], double y[], double z[], double fx[],
     //1.1045188 0.00081
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=1.6, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
+    double sigmaE=1.5, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
     double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=50000;//10*pow(10,3); //Number of time steps
+    int tau=300000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -427,22 +427,34 @@ int main(int argc, char** argv) {
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=0.1;
+    double temp=3.0;
     //Boltzmann Cons     
     double kB=0.0025;
     //momentum
     double sumvx, sumvy, sumvz;
     //pressure
     double P;
-    //Random seed;
-    srand(time(NULL));
-    
-    init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
-    writeXYZ(x, y, z, n);
-    gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
-    halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
-    bCond(x, y, z, l, n);
-    writeXYZ(x, y, z, n);
+
+    int rand;//
+    do {//
+        //Random seed;
+        srand(rand*time(NULL));//time(NULL)
+        temp=3.0;//
+        init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
+        writeXYZ(x, y, z, n);
+        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
+        halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
+        bCond(x, y, z, l, n);
+        writeXYZ(x, y, z, n);
+        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 1);//
+        verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, //
+                        sumvx, sumvy, sumvz, l, 1);//
+        bCond(x, y, z, l, n);//
+        temp=2*K/(3*n*kB);//
+        cout<<temp<<endl;//
+        rand++;//
+    } while(temp>10000);//
+
 
     for(int i=2; i<tau; i++){
         gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, i);
