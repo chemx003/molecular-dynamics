@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <time.h>
 
 using namespace std;
 
@@ -112,16 +113,17 @@ void gbForces(double x[], double y[], double z[], double fx[],
     //1.1045188 0.00081
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=2.4, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
+    double sigmaE=1.6, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
-    double chi=(pow(kappa,2)-1)/(pow(kappa,2)+1);
-    double chiPrime=(pow(kappaPrime,1/mu)-1)/(pow(kappaPrime,1/mu)+1);
+    double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
+    double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
     double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
-    double R, R_1, R_2, R_6, distF;
+    double R, R_1, R_2, R_6, R_7, R_12, R_13, distF;
     double ePrime, ePn, gPm, gPm1;
     double fxi, fyi, fzi;
+    double dotSByChi,dotDByChi,dotSByChip, dotDByChip;
     
     V=0;
     P=0;
@@ -131,6 +133,8 @@ void gbForces(double x[], double y[], double z[], double fx[],
         fy[i]=0;
         fz[i]=0;
     }
+    
+    int lrg=0;
     
     for(int i=0; i<n-1; i++){
         for(int j=i+1; j<n; j++){
@@ -149,49 +153,58 @@ void gbForces(double x[], double y[], double z[], double fx[],
             if(r2<rc2){
                 dot1=dx*ex[i]+dy*ey[i]+dz*ez[i]; 
                 dot2=dx*ex[j]+dy*ey[j]+dz*ez[j];
-                dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=pow(dot12,2);
-                dotSum=dot1+dot2; dotSum2=pow(dotSum,2);
-                dotDif=dot1-dot2; dotDif2=pow(dotDif,2);
+                dot12=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j]; dot122=dot12*dot12;
+                dotSum=dot1+dot2; dotSum2=dotSum*dotSum;
+                dotDif=dot1-dot2; dotDif2=dotDif*dotDif;
                 
-                g=1-(chi/(2*r2))*((dotSum2/(1+chi*dot12))+(dotDif2/(1-chi*dot12)));
-                gPrime=1-(chiPrime/(2*r2))*((dotSum2/(1+chiPrime*dot12))+(dotDif2/(1-chiPrime*dot12))); //epsilon
+                dotSByChi=dotSum/(1+chi*dot12);
+                dotDByChi=dotDif/(1-chi*dot12);
+                dotSByChip=dotSum/(1+chiPrime*dot12);
+                dotDByChip=dotDif/(1-chiPrime*dot12);
+                
+                g=1.0-(chi/(2*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
+                gPrime=1.0-(chiPrime/(2*r2))*(dotSum*dotSByChip+dotDif*dotDByChip); //epsilon
+                ePrime=1/pow(1-chi*chi*dot122,0.5);
+                
+                gPm=pow(gPrime,mu);
+                gPm1=pow(gPrime,mu-1);
+                ePn=pow(ePrime,nu);
+                
                 gHalf=pow(g,0.5);
                 
-                distF=sigmaS/gHalf;
+                distF=sigmaS/pow(g,0.5);
 
                 R=(r-distF+sigmaS)/sigmaS;
                 R_1=1/R;
-                R_2=R_1*R_1;
-                R_6=R_2*R_2*R_2;
+                R_6=R_1*R_1*R_1*R_1*R_1*R_1;
+                R_7=R_6*R_1;
+                R_12=R_6*R_6;
+                R_13=R_12*R_1;
 
                 ePrime=1/pow(1-chi*chi*dot122,0.5);
 
-                dgx=-(chi/r2)*((dotSum/(1+chi*dot12))*(ex[i]+ex[j])+(dotDif/(1-chi*dot12))
-                    *(ex[i]-ex[j]))+(dx*chi/(r2*r2))*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12));
-                dgy=-(chi/r2)*((dotSum/(1+chi*dot12))*(ey[i]+ey[j])+(dotDif/(1-chi*dot12))
-                    *(ey[i]-ey[j]))+(dy*chi/(r2*r2))*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12));
-                dgz=-(chi/r2)*((dotSum/(1+chi*dot12))*(ez[i]+ez[j])+(dotDif/(1-chi*dot12))
-                    *(ez[i]-ez[j]))+(dz*chi/(r2*r2))*(dotSum2/(1+chi*dot12)+dotDif2/(1-chi*dot12));
+                dgx=-(chi/r2)*(dotSByChi*(ex[i]+ex[j])+dotDByChi*(ex[i]-ex[j]))
+                        +(dx*chi/(r2*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
+                dgy=-(chi/r2)*(dotSByChi*(ey[i]+ey[j])+dotDByChi*(ey[i]-ey[j]))
+                        +(dy*chi/(r2*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
+                dgz=-(chi/r2)*(dotSByChi*(ez[i]+ez[j])+dotDByChi*(ez[i]-ez[j]))
+                        +(dz*chi/(r2*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
 
-                dgxPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ex[i]+ex[j])+(dotDif/(1-chiPrime*dot12))
-                    *(ex[i]-ex[j]))+(dx*chiPrime/(r2*r2))*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12));
-                dgyPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ey[i]+ey[j])+(dotDif/(1-chiPrime*dot12))
-                    *(ey[i]-ey[j]))+(dy*chiPrime/(r2*r2))*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12));
-                dgzPrime=-(chiPrime/r2)*((dotSum/(1+chiPrime*dot12))*(ez[i]+ez[j])+(dotDif/(1-chiPrime*dot12))
-                    *(ez[i]-ez[j]))+(dz*chiPrime/(r2*r2))*(dotSum2/(1+chiPrime*dot12)+dotDif2/(1-chiPrime*dot12));
+                dgxPrime=-(chiPrime/r2)*(dotSByChip*(ex[i]+ex[j])+dotDByChip*(ex[i]-ex[j]))
+                        +(dx*chiPrime/(r2*r2))*(dotSum*dotSByChip+dotDif*dotDByChip);
+                dgyPrime=-(chiPrime/r2)*(dotSByChip*(ey[i]+ey[j])+dotDByChip*(ey[i]-ey[j]))
+                        +(dy*chiPrime/(r2*r2))*(dotSum*dotSByChip+dotDif*dotDByChip);
+                dgzPrime=-(chiPrime/r2)*(dotSByChip*(ez[i]+ez[j])+dotDByChip*(ez[i]-ez[j]))
+                        +(dz*chiPrime/(r2*r2))*(dotSum*dotSByChip+dotDif*dotDByChip);
                 
-                ePn=pow(ePrime,nu);
-                gPm=pow(gPrime,mu);
-                gPm1=pow(gPrime,mu-1);
+                fxi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dx/r+(sigmaS/2)
+                    /(pow(g,1.5))*dgx)+mu*gPm1*(R_12-R_6)*dgxPrime); //forces between the pairs
+                fyi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dy/r+(sigmaS/2)
+                    /(pow(g,1.5))*dgy)+mu*gPm1*(R_12-R_6)*dgyPrime);
+                fzi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dz/r+(sigmaS/2)
+                    /(pow(g,1.5))*dgz)+mu*gPm1*(R_12-R_6)*dgzPrime);
                 
-                fxi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dx/r+(sigmaS/2)
-                    /(gHalf*gHalf*gHalf)*dgx)+mu*gPm1*R_6*(R_6-1)*dgxPrime); //forces between the pairs
-                fyi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dy/r+(sigmaS/2)
-                    /(gHalf*gHalf*gHalf)*dgy)+mu*gPm1*R_6*(R_6-1)*dgyPrime);
-                fzi=-epsilonS*(ePn*gPm*R_6*R_1*(6-12*R_6)*(dz/r+(sigmaS/2)
-                    /(gHalf*gHalf*gHalf)*dgz)+mu*gPm1*R_6*(R_6-1)*dgzPrime);
-                
-//                if(fyi>1){
+//                if(fxi>=100000 || fyi>=100000 || fzi>=100000){
 //                        cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
 //                        cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
 //                        cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
@@ -203,8 +216,9 @@ void gbForces(double x[], double y[], double z[], double fx[],
 //                        cout<<"dg: ("<< dgx <<"," << dgy << ", " << dgz << ")" << endl; 
 //                        cout<<"dgPrime: (" << dgxPrime << "," << dgyPrime << "," << dgzPrime << ")" << endl;
 //                        cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
+//                        lrg++;
 //                }
-                
+
                 fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
@@ -214,7 +228,12 @@ void gbForces(double x[], double y[], double z[], double fx[],
             }
         }
     }
-//    cout<<fx[135]<<endl;
+//    cout<<"LARGE INIDENTS: "<<lrg<<endl<< endl;
+//    double sumx=0;
+//    for(int i=0; i<n ; i++){
+//        sumx=sumx+fx[i];
+//    }
+//    cout<<sumx<<endl; //Checking if sum of forces = 0; 
     P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3; P=P/(l*l*l*pow(10,-18));
     //converted to Pa
     
@@ -227,12 +246,17 @@ void init(double x[], double y[], double z[], double vx[],
     double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
     double sumx=0.0, sumy=0.0, sumz=0.0; // for debugging get rid of later
     double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
+    double mag;//unit vector magnitude
     
     for(int i=0; i<n; i++){
         m[i]=mass;
-        ex[i]=0;
-        ey[i]=1;
-        ez[i]=0;
+        ex[i]=dRand(0,1);
+        ey[i]=dRand(0,1);
+        ez[i]=dRand(0,1);
+        mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
+        ex[i]=ex[i]/mag;
+        ey[i]=ey[i]/mag;
+        ez[i]=ez[i]/mag;
     }
     
     int N=ceil(pow(n,1.0/3.0)); //Third root of n to find # of particles in a direction
@@ -244,9 +268,9 @@ void init(double x[], double y[], double z[], double vx[],
         for(int j=0; j<N; j++){
             for(int k=0; k<N; k++){
                 if(p<n){
-                    x[p]=(i+0.5+dRand(-0.01,0.01))*a;
-                    y[p]=(j+0.5+dRand(-0.01,0.01))*a;
-                    z[p]=(k+0.5+dRand(-0.01,0.01))*a;
+                    x[p]=(i+0.5+dRand(-0.25,0.25))*a;
+                    y[p]=(j+0.5+dRand(-0.25,0.25))*a;
+                    z[p]=(k+0.5+dRand(-0.25,0.25))*a;
                 
                     vx[p]=dRand(-0.5,0.5); 
                     vy[p]=dRand(-0.5,0.5); 
@@ -301,7 +325,7 @@ double pairCor(double x[], double y[], double z[], int n, double l){
                 dz=z[i]-z[j];
 
                 dx=dx-l*round(dx/l); //correct for min image convention
-                dy=dy-l*round(dy/l); //from frenkel... we'll see how this goes
+                dy=dy-l*round(dy/l); 
                 dz=dz-l*round(dz/l);
                 
                 double r=sqrt(dx*dx+dy*dy+dz*dz);
@@ -315,7 +339,7 @@ double pairCor(double x[], double y[], double z[], int n, double l){
     }
     
     ofstream o;
-    o.open("rpc-k2.4.data");
+    o.open("rpc.data");
     R=0;
     for(int i=1; i<bins; i++){
         histo[i][1]=histo[i][1]*2/(4*3.1415*pow(R,2)*dR*256*256/(l*l*l)); //added factor of two.. need to count each particle
@@ -370,7 +394,7 @@ void verletLeapfrog(double x[], double y[], double z[], double vx[],
 
 void writeXYZ(double x[], double y[], double z[], int n){
     ofstream o;
-    o.open("reduced-k2.4.xyz",ios::app); //I should make this a setting in main())
+    o.open("random-testing.xyz",ios::app); //I should make this a setting in main())
     double t,j,k;
     
     o << 255 << endl;
@@ -390,8 +414,8 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=10000;//10*pow(10,3); //Number of time steps
-    double dT=pow(10,-10); //Length of time step ** used a smaller step
+    int tau=50000;//10*pow(10,3); //Number of time steps
+    double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
     double mass=1;
@@ -399,24 +423,24 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n],m[n],
             fx[n], fy[n], fz[n];
     //Simulation box length
-    double l=9.283177667;
+    double l=10.857670466; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=3;
+    double temp=0.1;
     //Boltzmann Cons     
     double kB=0.0025;
     //momentum
     double sumvx, sumvy, sumvz;
     //pressure
     double P;
+    //Random seed;
+    srand(time(NULL));
     
     init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
     writeXYZ(x, y, z, n);
     gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
-//    cout<< "x: " << x[135]<< " vx: " << vx[135] << " fx: " << fx[135] <<endl<<endl;
     halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
-//    cout<< "x: " << x[135]<< " vx: " << vx[135] << " fx: " << fx[135] <<endl<<endl;
     bCond(x, y, z, l, n);
     writeXYZ(x, y, z, n);
 
@@ -433,7 +457,7 @@ int main(int argc, char** argv) {
         E=K+V; //in scaled units
         temp=2*K/(3*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
         
-        if(i%100==0){            
+        if(i%100==0 || i==2){            
             cout << "Loop# " << i << endl;
             cout << "V: " << V << endl;
             cout << "K: " << K << endl;
