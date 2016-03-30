@@ -85,6 +85,32 @@ void largeForce(double x[], double y[], double z[], double fx[], double fy[],
     o.close();
 }
 
+void lfOrient(double ex[], double ey[], double ez[], double ux[],
+        double uy[], double uz[], double gx[], double gy[], double gz[],
+        double x[], double y[], double z[], double I, double& K, double dt,
+        int n, double l, int loop){
+    double lm, uxi, uyi, uzi; 
+    
+    
+    for(int i=0; i<n; i++){
+        lmx=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+        
+        uxi=ux[i]; //saving old velocities for energy calc.
+        uyi=uy[i];
+        uzi=uz[i];
+        
+        ux[i]=ux[i]+dt*(gx[i]/I+lm*ex[i]);
+        uy[i]=uy[i]+dt*(gy[i]/I+lm*ey[i]);
+        uz[i]=uz[i]+dt*(gz[i]/I+lm*ez[i]);
+        
+        ex[i]=ex[i]+dt*ux[i];
+        ey[i]=ey[i]+dt*uy[i];
+        ez[i]=ez[i]+dt*uz[i];
+        
+        //don't forget to calculate energy from rotation
+    }
+}
+
 double dRand(double dMin, double dMax){
     double d = (double)rand()/RAND_MAX;
     return dMin + d*(dMax-dMin);
@@ -107,7 +133,7 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
     }
 }
 
-void gbForces(double x[], double y[], double z[], double fx[],
+void gb(double x[], double y[], double z[], double fx[],
         double fy[], double fz[], double ex[], double ey[], double ez[],
         double& V, double l, double& P, double kB, double T, int n, int loop){
     //1.1045188 0.00081
@@ -351,7 +377,7 @@ double pairCor(double x[], double y[], double z[], int n, double l){
     
 }
 
-void verletLeapfrog(double x[], double y[], double z[], double vx[],
+void leapfrog(double x[], double y[], double z[], double vx[],
         double vy[], double vz[], double fx[], double fy[], double fz[],
         double mass, double& K, double dt, int n, double& sumvx, 
         double& sumvy, double& sumvz, double l, int loop){
@@ -410,6 +436,8 @@ void writeXYZ(double x[], double y[], double z[], int n){
     o.close();
 }
 
+
+
 int main(int argc, char** argv) {
     //Number of particles
     int n=256;
@@ -420,8 +448,8 @@ int main(int argc, char** argv) {
     //Particle info
     double mass=1;
     //Storage
-    double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n],m[n],
-            fx[n], fy[n], fz[n];
+    double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
+            uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
     double l=10.857670466; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
@@ -434,6 +462,8 @@ int main(int argc, char** argv) {
     double sumvx, sumvy, sumvz;
     //pressure
     double P;
+    //moment of inertia
+    double I;
 
     int rand;//
     do {//
@@ -442,12 +472,12 @@ int main(int argc, char** argv) {
         temp=3.0;//
         init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
-        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
         bCond(x, y, z, l, n);
         writeXYZ(x, y, z, n);
-        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 1);//
-        verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, //
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 1);//
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, //
                         sumvx, sumvy, sumvz, l, 1);//
         bCond(x, y, z, l, n);//
         temp=2*K/(3*n*kB);//
@@ -457,9 +487,9 @@ int main(int argc, char** argv) {
 
 
     for(int i=2; i<tau; i++){
-        gbForces(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, i);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, i);
         
-        verletLeapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
                     sumvx, sumvy, sumvz, l, i);
         
         bCond(x, y, z, l, n);
