@@ -93,7 +93,7 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
     
     
     for(int i=0; i<n; i++){
-        lmx=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+        lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
         
         uxi=ux[i]; //saving old velocities for energy calc.
         uyi=uy[i];
@@ -135,11 +135,12 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 
 void gb(double x[], double y[], double z[], double fx[],
         double fy[], double fz[], double ex[], double ey[], double ez[],
-        double& V, double l, double& P, double kB, double T, int n, int loop){
+        double& V, double l, double& P, double kB, double T, int n,
+        double sigE, int loop){
     //1.1045188 0.00081
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=1.5, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
+    double sigmaE=sigE, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
     double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
@@ -230,7 +231,7 @@ void gb(double x[], double y[], double z[], double fx[],
                 fzi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dz/r+(sigmaS/2)
                     /(pow(g,1.5))*dgz)+mu*gPm1*(R_12-R_6)*dgzPrime);
                 
-//                if(fxi>=100000 || fyi>=100000 || fzi>=100000){
+//                if(fxi>=10 || fyi>=10 || fzi>=10){
 //                        cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
 //                        cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
 //                        cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
@@ -442,7 +443,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=300000;//10*pow(10,3); //Number of time steps
+    int tau=500;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -464,6 +465,8 @@ int main(int argc, char** argv) {
     double P;
     //moment of inertia
     double I;
+    //SigmaE
+    double sigE=1.60;
 
     int rand;//
     do {//
@@ -472,22 +475,22 @@ int main(int argc, char** argv) {
         temp=3.0;//
         init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 0);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
         bCond(x, y, z, l, n);
         writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, 1);//
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, 1);//
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, //
                         sumvx, sumvy, sumvz, l, 1);//
         bCond(x, y, z, l, n);//
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>10000);//
+    } while(temp>100000);//
 
 
     for(int i=2; i<tau; i++){
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, i);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, i);
         
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
                     sumvx, sumvy, sumvz, l, i);
@@ -505,8 +508,19 @@ int main(int argc, char** argv) {
             cout << "K: " << K << endl;
             cout << "E: " << E << endl;
             cout << "T: " << temp << endl;
-            cout << "P: " << P << endl << endl;
+            cout << "P: " << P << endl;
+            double fxavg;
+            double fxmax=0;
+            for(int f=0; f<n; f++){
+                fxavg=fxavg+fx[f];
+                if(abs(fx[f])>abs(fxmax)){
+                    fxmax=fx[f];
+                }
+            }
             
+            fxavg=fxavg/n;
+            cout<< "Maximum force: " << fxmax << endl;
+            cout<< "Average x-force: " << fxavg << endl <<endl;
             // if(E>0){
             //      largeForce(x,y,z,fx,fy,fz,E,n);
             // }
