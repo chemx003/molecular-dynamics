@@ -452,11 +452,11 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=21.3; //scaled density of 0.2
+    double l=21.2; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=0.1;
+    double temp=0.5;
     //Boltzmann Cons     
     double kB=0.0025;
     //momentum
