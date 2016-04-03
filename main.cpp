@@ -443,7 +443,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=500;//10*pow(10,3); //Number of time steps
+    int tau=100000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -452,11 +452,11 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=10.857670466; //scaled density of 0.2
+    double l=21.3; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=3.0;
+    double temp=0.1;
     //Boltzmann Cons     
     double kB=0.0025;
     //momentum
@@ -466,13 +466,13 @@ int main(int argc, char** argv) {
     //moment of inertia
     double I;
     //SigmaE
-    double sigE=1.60;
+    double sigE=3.0;
 
     int rand;//
     do {//
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
-        temp=3.0;//
+        temp=0.1;//
         init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, 0);
@@ -486,7 +486,7 @@ int main(int argc, char** argv) {
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>100000);//
+    } while(temp>40);//
 
 
     for(int i=2; i<tau; i++){
