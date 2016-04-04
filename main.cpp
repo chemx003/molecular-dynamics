@@ -295,9 +295,9 @@ void init(double x[], double y[], double z[], double vx[],
         for(int j=0; j<N; j++){
             for(int k=0; k<N; k++){
                 if(p<n){
-                    x[p]=(i+0.5+dRand(-0.25,0.25))*a;
-                    y[p]=(j+0.5+dRand(-0.25,0.25))*a;
-                    z[p]=(k+0.5+dRand(-0.25,0.25))*a;
+                    x[p]=(i+0.5+dRand(-0.1,0.1))*a;
+                    y[p]=(j+0.5+dRand(-0.1,0.1))*a;
+                    z[p]=(k+0.5+dRand(-0.1,0.1))*a;
                 
                     vx[p]=dRand(-0.5,0.5); 
                     vy[p]=dRand(-0.5,0.5); 
@@ -320,9 +320,9 @@ void init(double x[], double y[], double z[], double vx[],
     sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n; //mean-squared velocities
     
     
-    double fsx=sqrt(temp/sumv2x);
-    double fsy=sqrt(temp/sumv2y);
-    double fsz=sqrt(temp/sumv2z);
+    double fsx=sqrt(0.0025*temp/sumv2x);
+    double fsy=sqrt(0.0025*temp/sumv2y);
+    double fsz=sqrt(0.0025*temp/sumv2z);
     
 
     for(int i=0; i<n; i++){
@@ -370,7 +370,7 @@ double pairCor(double x[], double y[], double z[], int n, double l){
     R=0;
     for(int i=1; i<bins; i++){
         histo[i][1]=histo[i][1]*2/(4*3.1415*pow(R,2)*dR*256*256/(l*l*l)); //added factor of two.. need to count each particle
-        if(histo[i][1]<100 && histo[i][1]>0)
+        if(histo[i][1]<1000 && histo[i][1]>0)
             o << histo[i][0] << "\t" << histo[i][1] << "\n";
         R=R+dR;
     }
@@ -443,7 +443,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=100000;//10*pow(10,3); //Number of time steps
+    int tau=10000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -452,7 +452,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=21.2; //scaled density of 0.2
+    double l=14.75; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -486,7 +486,7 @@ int main(int argc, char** argv) {
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>40);//
+    } while(temp>10);//
 
 
     for(int i=2; i<tau; i++){
