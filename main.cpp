@@ -142,7 +142,7 @@ void gb(double x[], double y[], double z[], double fx[],
     double dx, dy, dz;
     double sigmaE=sigE, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
-    double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
+    double chi=(1.0-pow(kappa,2.0))/(pow(kappa,2.0)+1.0);
     double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
     double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
@@ -443,7 +443,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=10000;//10*pow(10,3); //Number of time steps
+    int tau=25000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -452,11 +452,11 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=14.75; //scaled density of 0.2
+    double l=9.283177667; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=0.5;
+    double temp=1.7;
     //Boltzmann Cons     
     double kB=0.0025;
     //momentum
@@ -472,7 +472,7 @@ int main(int argc, char** argv) {
     do {//
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
-        temp=0.1;//
+        temp=1.7;//
         init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, 0);
@@ -486,7 +486,7 @@ int main(int argc, char** argv) {
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>10);//
+    } while(temp>2000);//
 
 
     for(int i=2; i<tau; i++){
