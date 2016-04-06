@@ -1,0 +1,99 @@
+Loop#: 3651
+fx32(verlet): -0.0342824
+x32(BC): 82.1129
+xOLD32(BC): 24.4752
+
+Loop#: 3652
+fx32(verlet): -0.0405711
+x32(BC): 39.7464
+xOLD32(BC): 82.1129
+
+Loop#: 3653
+fx32(verlet): 0.0146536
+x32(BC): 97.3815
+xOLD32(BC): 39.7464
+
+Loop#: 3654
+fx32(verlet): -0.205316
+x32(BC): 54.996
+xOLD32(BC): 97.3815
+
+Loop#: 3655
+fx32(verlet): 0
+x32(BC): 12.6105
+xOLD32(BC): 54.996
+
+Loop#: 3656
+fx32(verlet): 0.142606
+x32(BC): 70.2392
+xOLD32(BC): 12.6105
+
+Loop#: 3657
+fx32(verlet): 0
+x32(BC): 27.868
+xOLD32(BC): 70.2392
+
+Loop#: 3658
+fx32(verlet): 0
+x32(BC): 85.4968
+xOLD32(BC): 27.868
+
+Loop#: 3659
+fx32(verlet): 0
+x32(BC): 43.1255
+xOLD32(BC): 85.4968
+
+Loop#: 3660
+fx32(verlet): -0.0283668
+x32(BC): 0.751438
+xOLD32(BC): 43.1255
+
+Loop#: 3661
+fx32(verlet): -2.93294e+22
+x32(verlet): -2.93294e+21
+x32(BC): 100
+xOLD32(BC): 0.751438
+
+Loop#: 3662
+fx32(verlet): -nan
+x32(verlet): -nan
+x32(BC): -nan
+xOLD32(BC): 100
+
+Loop#: 3663
+fx32(verlet): 0
+x32(verlet): -nan
+x32(BC): -nan
+xOLD32(BC): -nan
+
+Loop#: 3664
+fx32(verlet): 0
+x32(verlet): -nan
+x32(BC): -nan
+xOLD32(BC): -nan
+
+Loop#: 3665
+fx32(verlet): 0
+x32(BC): -nan
+xOLD32(BC): -nan
+
+Loop#: 3666
+fx32(verlet): 0
+x32(BC): -nan
+xOLD32(BC): -nan
+
+Loop#: 3667
+fx32(verlet): 0
+x32(BC): -nan
+xOLD32(BC): -nan
+
+Loop#: 3668
+fx32(verlet): 0
+x32(BC): -nan
+xOLD32(BC): -nan
+
+Loop#: 3669
+fx32(verlet): 0
+x32(BC): -nan
+xOLD32(BC): -nan
+

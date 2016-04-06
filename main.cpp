@@ -93,8 +93,9 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
     
     
     for(int i=0; i<n; i++){
+
         lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
-        
+
         uxi=ux[i]; //saving old velocities for energy calc.
         uyi=uy[i];
         uzi=uz[i];
@@ -112,7 +113,10 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
         ex[i]=ex[i]/mag;
         ey[i]=ey[i]/mag;
         ez[i]=ez[i]/mag;//just here to test remove and debug later
-        
+
+        if(i==1)
+        cout<<"("<<ex[i]<<","<<ey[i]<<","<<ez[i]<<")"<<endl<<endl;
+
         //if(mag>=1){
         //   cout<< i << " (" << mag << ")" << endl;
         //}
@@ -148,7 +152,7 @@ void gb(double x[], double y[], double z[], double fx[],
         double& P, double kB, double T, int n, double sigE, int loop){
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=sigE, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
+    double sigmaE=3.0, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(1.0-pow(kappa,2.0))/(pow(kappa,2.0)+1.0);
     double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
@@ -169,9 +173,9 @@ void gb(double x[], double y[], double z[], double fx[],
     P=0;
     
     for(int i=0; i<n; i++){
-        fx[i]=0; gx[i];
-        fy[i]=0; gy[i];
-        fz[i]=0; gz[i];
+        fx[i]=0; gx[i]=0;
+        fy[i]=0; gy[i]=0;
+        fz[i]=0; gz[i]=0;
     }
     
     int lrg=0;
@@ -319,6 +323,10 @@ void gb(double x[], double y[], double z[], double fx[],
                 gy[i]=gy[i]+gy1; gy[j]=gy[j]+gy2;
                 gz[i]=gz[i]+gz1; gz[j]=gz[j]+gz2;
                 
+                if(i==1){
+                    cout<<gx[i]<<endl;
+                }
+
 //                if(fxi>=100 || fyi>=100 || fzi>=100){
 //                        cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
 //                        cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
@@ -336,7 +344,7 @@ void gb(double x[], double y[], double z[], double fx[],
 //                        cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
 //                        lrg++;
 //                }
-                
+        
                 V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
                 //cout<<V<<endl;
                 P=P+fxi*dx+fyi*dy+fzi*dz;//pressure
@@ -423,13 +431,13 @@ void init(double x[], double y[], double z[], double vx[],
     sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n; //mean-squared velocities
     sumu2x=sumu2x/n; sumu2y=sumu2y/n; sumu2z=sumu2z/n;
     
-    double fsvx=sqrt(temp/sumv2x);
-    double fsvy=sqrt(temp/sumv2y);
-    double fsvz=sqrt(temp/sumv2z);
+    double fsvx=sqrt(0.0025*temp/sumv2x);
+    double fsvy=sqrt(0.0025*temp/sumv2y);
+    double fsvz=sqrt(0.0025*temp/sumv2z);
     
-    double fsux=sqrt(temp/sumu2x);
-    double fsuy=sqrt(temp/sumu2y);
-    double fsuz=sqrt(temp/sumu2z);
+    double fsux=sqrt(0.0025*temp/sumu2x);
+    double fsuy=sqrt(0.0025*temp/sumu2y);
+    double fsuz=sqrt(0.0025*temp/sumu2z);
     
     for(int i=0; i<n; i++){
         vx[i]=(vx[i]-sumvx)*fsvx;
@@ -581,7 +589,6 @@ int main(int argc, char** argv) {
     double I=1;
     double sigE=3.0;
 
-
     int rand;//
     do {//
         //Random seed;
@@ -624,19 +631,8 @@ int main(int argc, char** argv) {
             cout << "K: " << K << endl;
             cout << "E: " << E << endl;
             cout << "T: " << temp << endl;
-            cout << "P: " << P << endl;
-            double fxavg;
-            double fxmax=0;
-            for(int f=0; f<n; f++){
-                fxavg=fxavg+fx[f];
-                if(abs(fx[f])>abs(fxmax)){
-                    fxmax=fx[f];
-                }
-            }
+            cout << "P: " << P << endl << endl;
             
-            fxavg=fxavg/n;
-            cout<< "Maximum force: " << fxmax << endl;
-            cout<< "Average x-force: " << fxavg << endl <<endl;
             // if(E>0){
             //      largeForce(x,y,z,fx,fy,fz,E,n);
             // }
@@ -644,4 +640,5 @@ int main(int argc, char** argv) {
      }
      pairCor(x,y,z,n,l);
 }
+
 

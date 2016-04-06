@@ -1,0 +1,48 @@
+In reduced-units:
+
+				*Isotropic*
+	-switched to 256 particles
+	-running 300000 timesteps for stability with no anisotropy
+	-appears liquid, but kinetic energy and temperature are off
+	-changing pcorf for 256 particles
+	-changed potential to not use pow()
+	-definitely need to check the units...****
+		+the temperature looks like it should work but it is O(10^-2)
+	-energy is not even relatively constant
+
+	-stable for 300000 timesteps
+	-pcf looks liquid despite the mixup
+
+	-trying reduced units
+		*mass=1 m_PAA
+		*length=1 sigma
+		*energy=1 epsilon
+	-stable for: 1000,10000
+	-energy is about as constant as with non-reduced units
+	-scaled boltzmann constant
+	-upon visual inspection appears to be a gas w/ T*=3
+	-temperature seems more correct after change
+	-PCF is seriously off not even gaseous
+	-*fixed definitely gas
+	-reducing temperature and attempting to produce liquid state
+	-at T=2.5 appears stable & energy fluctuations same
+	-still fgas
+	-T=2.0 still gas
+	-T=1.5 still gas
+	-T=1.25 still gas
+	-T=1.10 still gas it appears tthat the density is wrong
+	-T=1.0 still gas
+	-T=0.75 liquid forming
+	-T=0.5 energy fluctuations less
+	-T=0.5 l=9.2~ -> l=8.5 : more energy fluctuations, pcf cleaning up
+	-T=0.5 l=8.0 : same
+	-T=0.5 l=6.8 pcf shaping up
+	
+	-introducing anisotropy kappa 2:1 kappaP 2:1
+	-nan's across the board
+	-i jacked up the length scale and the nans went away...
+	i have a feeling i'm just missing something that is jacking some of 
+	the forces up
+	-the force is relatively large in the direction that the particles
+	are aligned
+
