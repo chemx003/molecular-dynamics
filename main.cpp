@@ -114,8 +114,8 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
         ey[i]=ey[i]/mag;
         ez[i]=ez[i]/mag;//just here to test remove and debug later
 
-        if(i==1)
-        cout<<"("<<ex[i]<<","<<ey[i]<<","<<ez[i]<<")"<<endl<<endl;
+        //if(i==1)
+        //cout<<"("<<ex[i]<<","<<ey[i]<<","<<ez[i]<<")"<<endl<<endl;
 
         //if(mag>=1){
         //   cout<< i << " (" << mag << ")" << endl;
@@ -152,11 +152,11 @@ void gb(double x[], double y[], double z[], double fx[],
         double& P, double kB, double T, int n, double sigE, int loop){
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=3.0, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
+    double sigmaE=sigE, sigmaS=1.0, epsilonE=5.0, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
-    double chi=(1.0-pow(kappa,2.0))/(pow(kappa,2.0)+1.0);
-    double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
-    double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
+    double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
+    double chiPrime=(1.0-pow(kappaPrime,1.0/mu))/(pow(kappaPrime,1.0/mu)+1.0);
+    double rc=4.0*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, R_7, R_12, R_13, distF;
@@ -323,9 +323,9 @@ void gb(double x[], double y[], double z[], double fx[],
                 gy[i]=gy[i]+gy1; gy[j]=gy[j]+gy2;
                 gz[i]=gz[i]+gz1; gz[j]=gz[j]+gz2;
                 
-                if(i==1){
-                    cout<<gx[i]<<endl;
-                }
+                //if(i==1){
+                //    cout<<gx[i]<<endl;
+                //}
 
 //                if(fxi>=100 || fyi>=100 || fzi>=100){
 //                        cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
@@ -565,7 +565,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=5000;//10*pow(10,3); //Number of time steps
+    int tau=10000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -574,7 +574,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=9.283177667; //scaled density of 0.2
+    double l=10.283177667; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -594,16 +594,16 @@ int main(int argc, char** argv) {
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
         temp=1.7;//
-        init(x, y, z, vx, vy, vz, ex, ey, ez, m, mass, l, dT, temp, n); 
+        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass,I, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, 0);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez,gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
         bCond(x, y, z, l, n);
         writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, V, l, P, kB, T, n, sigE, 1);//
+        gb(x, y, z, fx, fy, fz, ex, ey, ez,gx, gy, gz, V, l, P, kB, T, n, sigE, 1);//
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, //
                         sumvx, sumvy, sumvz, l, 1);//
-        lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
+        //lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
         bCond(x, y, z, l, n);//
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
@@ -616,7 +616,7 @@ int main(int argc, char** argv) {
         
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
                     sumvx, sumvy, sumvz, l, i);
-        lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
+        //lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
         
         bCond(x, y, z, l, n);
      
