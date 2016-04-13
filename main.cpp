@@ -155,8 +155,8 @@ void gb(double x[], double y[], double z[], double fx[],
     double sigmaE=sigE, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
-    double chiPrime=(1.0-pow(kappaPrime,1.0/mu))/(pow(kappaPrime,1.0/mu)+1.0);
-    double rc=4.0*sigmaS, rc2=rc*rc; //cuttoff
+    double chiPrime=-(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
+    double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, R_7, R_12, R_13, distF;
@@ -591,15 +591,14 @@ int main(int argc, char** argv) {
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
         temp=1.7;//
-        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass,I, l, dT, temp, n); 
+        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
         bCond(x, y, z, l, n);
         writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez,gx, gy, gz, V, l, P, kB, T, n, sigE, 1);//
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, //
-                        sumvx, sumvy, sumvz, l, 1);//
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);//
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, 1);//
         //lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
         bCond(x, y, z, l, n);//
         temp=2*K/(3*n*kB);//
@@ -611,8 +610,7 @@ int main(int argc, char** argv) {
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
         
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, 
-                    sumvx, sumvy, sumvz, l, i);
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
         //lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
         
         bCond(x, y, z, l, n);
