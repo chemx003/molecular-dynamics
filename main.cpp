@@ -152,7 +152,7 @@ void gb(double x[], double y[], double z[], double fx[],
         double& P, double kB, double T, int n, double sigE, int loop){
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=sigE, sigmaS=1.0, epsilonE=5.0, epsilonS=1.0;
+    double sigmaE=sigE, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
     double chiPrime=(1.0-pow(kappaPrime,1.0/mu))/(pow(kappaPrime,1.0/mu)+1.0);
@@ -447,7 +447,6 @@ void init(double x[], double y[], double z[], double vx[],
         ux[i]=(ux[i])*fsux;
         uy[i]=(uy[i])*fsuy;
         uz[i]=(uz[i])*fsuz;
-//        cout<<vx[i]<<endl;
     }
 }
 
@@ -520,14 +519,12 @@ void leapfrog(double x[], double y[], double z[], double vx[],
         vyi=0.5*(vyi+vy[i]);
         vzi=0.5*(vzi+vz[i]);
         
-        //cout << vxi << endl;
-        
         x[i]=x[i]+dt*vx[i];
         y[i]=y[i]+dt*vy[i];
         z[i]=z[i]+dt*vz[i];
                        
         K=K+vxi*vxi+vyi*vyi+vzi*vzi;
-        
+                
         sumvx=sumvx+vxi;//velocity of the center of mass
         sumvy=sumvy+vyi;
         sumvz=sumvz+vzi;
@@ -574,7 +571,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n], 
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=10.283177667; //scaled density of 0.2
+    double l=9.283177667; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -596,7 +593,7 @@ int main(int argc, char** argv) {
         temp=1.7;//
         init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass,I, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez,gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
         bCond(x, y, z, l, n);
         writeXYZ(x, y, z, n);
