@@ -152,9 +152,9 @@ void gb(double x[], double y[], double z[], double fx[],
         double& P, double kB, double T, int n, double sigE, int loop){
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
-    double sigmaE=sigE, sigmaS=1.0, epsilonE=0.2, epsilonS=1.0;
+    double sigmaE=sigE, sigmaS=1.0, epsilonE=5.0, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
-    double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
+    double chi=(pow(kappa,2.0-1.0))/(pow(kappa,2.0)+1.0);
     double chiPrime=-(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
     double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
@@ -221,7 +221,7 @@ void gb(double x[], double y[], double z[], double fx[],
                 gHalf=pow(g,0.5);
                 
                 distF=sigmaS/pow(g,0.5);
-
+                
                 R=(r-distF+sigmaS)/sigmaS;
                 R_1=1/R;
                 R_6=R_1*R_1*R_1*R_1*R_1*R_1;    R_12=R_6*R_6;
@@ -562,7 +562,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=10000;//10*pow(10,3); //Number of time steps
+    int tau=15000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -575,7 +575,7 @@ int main(int argc, char** argv) {
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
-    double temp=1.7;
+    double temp=0.9;
     //Boltzmann Cons     
     double kB=0.0025;
     //momentum
@@ -590,7 +590,7 @@ int main(int argc, char** argv) {
     do {//
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
-        temp=1.7;//
+        temp=0.9;//
         init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, n); 
         writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
@@ -599,7 +599,7 @@ int main(int argc, char** argv) {
         writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);//
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, 1);//
-        //lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
+        lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
         bCond(x, y, z, l, n);//
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
@@ -609,14 +609,10 @@ int main(int argc, char** argv) {
 
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-        
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
-        //lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
-        
+        lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);        
         bCond(x, y, z, l, n);
-     
         writeXYZ(x,y,z,n);
-        
         E=K+V; //in scaled units
         temp=2*K/(3*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
         
@@ -633,7 +629,16 @@ int main(int argc, char** argv) {
             // }
          }
      }
-     pairCor(x,y,z,n,l);
+    
+    double exAvg, eyAvg, ezAvg;
+    for(int i=0; i<n; i++){
+        exAvg=exAvg+ex[i];
+        eyAvg=eyAvg+ey[i];
+        ezAvg=ezAvg+ez[i];
+    }
+    exAvg=exAvg/n; eyAvg=eyAvg/n; ezAvg=ezAvg/n;
+    cout<<"(exAvg,eyAvg,ezAvg)=("<<exAvg<<","<<eyAvg<<","<<ezAvg<<")";
+    pairCor(x,y,z,n,l);
 }
 
 
