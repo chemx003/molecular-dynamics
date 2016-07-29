@@ -154,9 +154,9 @@ void gb(double x[], double y[], double z[], double fx[],
     double mu=2.0, nu=1.0;
     double dx, dy, dz;
     double sigmaE=sigE, sigmaS=1.0, epsilonE=5.0, epsilonS=1.0;
-    double kappa=sigmaE/sigmaS, kappaPrime=epsilonS/epsilonE;
+    double kappa=sigmaE/sigmaS, kappaPrime=epsilonE/epsilonS;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
-    double chiPrime=(1.0-pow(kappaPrime,1.0/mu))/(1.0+pow(kappaPrime,1.0/mu));
+    double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
     double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
@@ -210,9 +210,9 @@ void gb(double x[], double y[], double z[], double fx[],
                 dotDByChip=dotDif/(1-chiPrime*dot12);
 
                 //calculation of g, gPrime, and others
-                g=1.0-(chi/(2*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
-                gPrime=1.0-(chiPrime/(2*r2))*(dotSum*dotSByChip+dotDif*dotDByChip); //epsilon
-                ePrime=1/pow(1-chi*chi*dot122,0.5);//epsilon single prime
+                g=1.0-(chi/(2.0*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
+                gPrime=1.0-(chiPrime/(2.0*r2))*(dotSum*dotSByChip+dotDif*dotDByChip); //epsilon
+                ePrime=1.0/pow(1.0-chi*chi*dot122,0.5);//epsilon single prime
 
                 gPm=pow(gPrime,mu);
                 gPm1=pow(gPrime,mu-1);
@@ -224,7 +224,7 @@ void gb(double x[], double y[], double z[], double fx[],
                 distF=sigmaS/pow(g,0.5);
 
                 R=(r-distF+sigmaS)/sigmaS;
-                R_1=1/R;
+                R_1=1.0/R;
                 R_6=R_1*R_1*R_1*R_1*R_1*R_1;    R_12=R_6*R_6;
                 R_7=R_6*R_1;                    R_13=R_12*R_1;
 
@@ -328,23 +328,23 @@ void gb(double x[], double y[], double z[], double fx[],
                 //    cout<<gx[i]<<endl;
                 //}
 
-//                if(fxi>=100 || fyi>=100 || fzi>=100){
-//                        cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
-//                        cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
-//                        cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
-//                        cout<<"gx("<< loop <<"," <<i << ", " << j<< "): " <<gx1<<endl;
-//                        cout<<"gy("<< loop <<"," <<i << ", " << j<< "): " <<gy1<<endl;
-//                        cout<<"gz("<< loop <<"," <<i << ", " << j<< "): " <<gz1<<endl;
-//                        cout<<"r: "<< r << " (" << dx << "," << dy << "," << dz << ")" << endl;
-//                        cout<<"dot 1: "<< dot1 << " dot 2: " << dot2 << " dot12: " << dot12 << endl;
-//                        cout<<"distF: "<< distF << " chi: " << chi << " chiPrime " << chiPrime << endl;
-//                        cout<<"g: " << g << " gPrime: " << gPrime << " ePrime: " << ePn << endl;
-//                        cout<<"gHalf: " << gHalf << endl;
-//                        cout<<"dg: ("<< dgx <<"," << dgy << ", " << dgz << ")" << endl;
-//                        cout<<"dgPrime: (" << dgxPrime << "," << dgyPrime << "," << dgzPrime << ")" << endl;
-//                        cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
-//                        lrg++;
-//                }
+            //    if(r<=1){
+            //            cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
+            //            cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
+            //            cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
+            //            cout<<"gx("<< loop <<"," <<i << ", " << j<< "): " <<gx1<<endl;
+            //            cout<<"gy("<< loop <<"," <<i << ", " << j<< "): " <<gy1<<endl;
+            //            cout<<"gz("<< loop <<"," <<i << ", " << j<< "): " <<gz1<<endl;
+            //            cout<<"r: "<< r << " (" << dx << "," << dy << "," << dz << ")" << endl;
+            //            cout<<"dot 1: "<< dot1 << " dot 2: " << dot2 << " dot12: " << dot12 << endl;
+            //            cout<<"distF: "<< distF << " chi: " << chi << " chiPrime " << chiPrime << endl;
+            //            cout<<"g: " << g << " gPrime: " << gPrime << " ePrime: " << ePn << endl;
+            //            cout<<"gHalf: " << gHalf << endl;
+            //            cout<<"dg: ("<< dgx <<"," << dgy << ", " << dgz << ")" << endl;
+            //            cout<<"dgPrime: (" << dgxPrime << "," << dgyPrime << "," << dgzPrime << ")" << endl;
+            //            cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
+            //            lrg++;
+            //    }
 
                 V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
                 //cout<<V<<endl;
@@ -366,7 +366,8 @@ void gb(double x[], double y[], double z[], double fx[],
 void init(double x[], double y[], double z[], double vx[],
         double vy[], double vz[], double ux[], double uy[], double uz[],
         double ex[], double ey[], double ez[],
-        double m[], double mass, double I, double l, double dt, double temp, int n){
+        double m[], double mass, double I, double l, double dt, double temp,
+        double kB, int n){
 
     double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
     double sumux=0.0, sumuy=0.0, sumuz=0.0;
@@ -432,13 +433,65 @@ void init(double x[], double y[], double z[], double vx[],
     sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n; //mean-squared velocities
     sumu2x=sumu2x/n; sumu2y=sumu2y/n; sumu2z=sumu2z/n;
 
-    double fsvx=sqrt(0.0025*temp/sumv2x);
-    double fsvy=sqrt(0.0025*temp/sumv2y);
-    double fsvz=sqrt(0.0025*temp/sumv2z);
+    double fsvx=sqrt(kB*temp/sumv2x);
+    double fsvy=sqrt(kB*temp/sumv2y);
+    double fsvz=sqrt(kB*temp/sumv2z);
 
-    double fsux=sqrt(0.0025*temp/sumu2x);
-    double fsuy=sqrt(0.0025*temp/sumu2y);
-    double fsuz=sqrt(0.0025*temp/sumu2z);
+    double fsux=sqrt(kB*temp/sumu2x);
+    double fsuy=sqrt(kB*temp/sumu2y);
+    double fsuz=sqrt(kB*temp/sumu2z);
+
+    for(int i=0; i<n; i++){
+        vx[i]=(vx[i]-sumvx)*fsvx;
+        vy[i]=(vy[i]-sumvy)*fsvy;
+        vz[i]=(vz[i]-sumvz)*fsvz;
+
+        ux[i]=(ux[i])*fsux;
+        uy[i]=(uy[i])*fsuy;
+        uz[i]=(uz[i])*fsuz;
+    }
+}
+
+void rescale(double vx[],double vy[], double vz[], double ux[],
+        double uy[], double uz[], double temp, double kB, int n){
+
+    double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
+    double sumux=0.0, sumuy=0.0, sumuz=0.0;
+    double sumx=0.0, sumy=0.0, sumz=0.0; // for debugging get rid of later
+    double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
+    double sumu2x=0.0, sumu2y=0.0, sumu2z=0.0;
+    double mag;//unit vector magnitude
+
+    for(int p=0; p<n; p++){
+
+                    sumvx=sumvx+vx[p];
+                    sumvy=sumvy+vy[p];
+                    sumvz=sumvz+vz[p];
+
+                    sumux=sumux+ux[p];
+                    sumuy=sumuy+uy[p];
+                    sumuz=sumuz+uz[p];
+
+                    sumv2x=sumv2x+pow(vx[p],2);
+                    sumv2y=sumv2y+pow(vy[p],2);
+                    sumv2z=sumv2z+pow(vz[p],2);
+
+                    sumu2x=sumu2x+pow(ux[p],2);
+                    sumu2y=sumu2y+pow(uy[p],2);
+                    sumu2z=sumu2z+pow(uz[p],2);
+                }
+
+    sumvx=sumvx/n; sumvy=sumvy/n; sumvz=sumvz/n; //cm velocities
+    sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n; //mean-squared velocities
+    sumu2x=sumu2x/n; sumu2y=sumu2y/n; sumu2z=sumu2z/n;
+
+    double fsvx=sqrt(kB*temp/sumv2x);
+    double fsvy=sqrt(kB*temp/sumv2y);
+    double fsvz=sqrt(kB*temp/sumv2z);
+
+    double fsux=sqrt(kB*temp/sumu2x);
+    double fsuy=sqrt(kB*temp/sumu2y);
+    double fsuz=sqrt(kB*temp/sumu2z);
 
     for(int i=0; i<n; i++){
         vx[i]=(vx[i]-sumvx)*fsvx;
@@ -561,6 +614,7 @@ void writeEnergy(double V, double K, double E, int time){
     ofstream o;
     o.open("energy.data", ios::app);
     o << time << "\t" << V << "\t" << K << "\t" << E << "\n";
+    o.close();
 }
 
 void writeVectors(double x[], double y[], double z[],
@@ -580,7 +634,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=1000;//10*pow(10,3); //Number of time steps
+    int tau=25000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -589,7 +643,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=18; //scaled density of 0.2
+    double l=13.92472; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -601,15 +655,15 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-    double I=1;
+    double I=30.0;
     double sigE=3.0;
 
-    int rand;//
+    int rand=1.0;//
     do {//
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
         temp=0.9;//
-        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, n);
+        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
         //writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
@@ -622,7 +676,7 @@ int main(int argc, char** argv) {
         temp=2*K/(3*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>2000);//
+    } while(temp>100);//
 
 
     for(int i=2; i<tau; i++){
@@ -630,6 +684,7 @@ int main(int argc, char** argv) {
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
         bCond(x, y, z, l, n);
+        rescale(vx,vy,vz,ux,uy,uz,1.7,kB,n);
         //writeXYZ(x,y,z,n);
         E=K+V; //in scaled units
         temp=2*K/(3*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
@@ -658,5 +713,5 @@ int main(int argc, char** argv) {
     }
     exAvg=exAvg/n; eyAvg=eyAvg/n; ezAvg=ezAvg/n;
     cout<<"(exAvg,eyAvg,ezAvg)=("<<exAvg<<","<<eyAvg<<","<<ezAvg<<")";
-    //pairCor(x,y,z,n,l);
+    pairCor(x,y,z,n,l);
 }
