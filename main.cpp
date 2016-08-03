@@ -328,14 +328,15 @@ void gb(double x[], double y[], double z[], double fx[],
                 //    cout<<gx[i]<<endl;
                 //}
 
-            //    if(r<=1){
+           	    if(r<=1){
             //            cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
             //            cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
             //            cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
             //            cout<<"gx("<< loop <<"," <<i << ", " << j<< "): " <<gx1<<endl;
             //            cout<<"gy("<< loop <<"," <<i << ", " << j<< "): " <<gy1<<endl;
             //            cout<<"gz("<< loop <<"," <<i << ", " << j<< "): " <<gz1<<endl;
-            //            cout<<"r: "<< r << " (" << dx << "," << dy << "," << dz << ")" << endl;
+            //            cout<<"r: "<< r << endl;
+			//<< dx << "," << dy << "," << dz << ")" << endl;
             //            cout<<"dot 1: "<< dot1 << " dot 2: " << dot2 << " dot12: " << dot12 << endl;
             //            cout<<"distF: "<< distF << " chi: " << chi << " chiPrime " << chiPrime << endl;
             //            cout<<"g: " << g << " gPrime: " << gPrime << " ePrime: " << ePn << endl;
@@ -344,7 +345,7 @@ void gb(double x[], double y[], double z[], double fx[],
             //            cout<<"dgPrime: (" << dgxPrime << "," << dgyPrime << "," << dgzPrime << ")" << endl;
             //            cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
             //            lrg++;
-            //    }
+           	    }
 
                 V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
                 //cout<<V<<endl;
@@ -378,9 +379,9 @@ void init(double x[], double y[], double z[], double vx[],
 
     for(int i=0; i<n; i++){
         m[i]=mass;
-        ex[i]=dRand(0,1);
-        ey[i]=dRand(0,1);
-        ez[i]=dRand(0,1);
+        ex[i]=1;//dRand(0,1);
+        ey[i]=1;//dRand(0,1);
+        ez[i]=1;//dRand(0,1);
         mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
         ex[i]=ex[i]/mag;
         ey[i]=ey[i]/mag;
@@ -583,8 +584,6 @@ void leapfrog(double x[], double y[], double z[], double vx[],
         sumvy=sumvy+vyi;
         sumvz=sumvz+vzi;
     }
-//    cout<< "x: " << x[135]<< " vx: " << vx[135] << " fx: " << fx[135] <<endl<<endl;
-    //cout << "(" << sumvx << "," << sumvy << "," << sumvz << ")" << endl;
     K=0.5*mass*K; //Just assuming one mass for now
 }
 
@@ -634,7 +633,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=25000;//10*pow(10,3); //Number of time steps
+    int tau=50000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -643,7 +642,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=13.92472; //scaled density of 0.2
+    double l=14.92472; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -655,7 +654,7 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-    double I=30.0;
+    double I=1000.0;
     double sigE=3.0;
 
     int rand=1.0;//
@@ -681,10 +680,12 @@ int main(int argc, char** argv) {
 
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
+		if(i<25000){
+        	leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
+		}
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
         bCond(x, y, z, l, n);
-        rescale(vx,vy,vz,ux,uy,uz,1.7,kB,n);
+        //rescale(vx,vy,vz,ux,uy,uz,1.7,kB,n);
         //writeXYZ(x,y,z,n);
         E=K+V; //in scaled units
         temp=2*K/(3*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
