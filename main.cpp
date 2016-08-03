@@ -163,7 +163,8 @@ void gb(double x[], double y[], double z[], double fx[],
     double R, R_1, R_2, R_6, R_7, R_12, R_13, distF;
     double ePrime, ePn, ePn1, gPm, gPm1;
     double fxi, fyi, fzi, gx1, gy1, gz1, gx2, gy2, gz2;
-    double dotSByChi,dotDByChi,dotSByChip, dotDByChip;
+    double dotSByChi, dotDByChi, dotSByChip, dotDByChip;
+	double dotSByChi2, dotDByChi2, dotSByChip2, dotDByChip2;
     double dex1, dey1, dez1, dex2, dey2, dez2;
     double depx1, depy1, depz1, depx2, depy2, depz2;//derivatives of epsilon single prime wrt orientation
     double drx1,dry1,drz1,drx2,dry2,drz2;//derivatives of r wrt orientation
@@ -209,6 +210,11 @@ void gb(double x[], double y[], double z[], double fx[],
                 dotSByChip=dotSum/(1+chiPrime*dot12);
                 dotDByChip=dotDif/(1-chiPrime*dot12);
 
+				dotSByChi2=dotSum2/(1+chi*dot122);
+                dotDByChi2=dotDif2/(1-chi*dot122);
+                dotSByChip2=dotSum2/(1+chiPrime*dot122);
+                dotDByChip2=dotDif2/(1-chiPrime*dot122);
+
                 //calculation of g, gPrime, and others
                 g=1.0-(chi/(2.0*r2))*(dotSum*dotSByChi+dotDif*dotDByChi);
                 gPrime=1.0-(chiPrime/(2.0*r2))*(dotSum*dotSByChip+dotDif*dotDByChip); //epsilon
@@ -245,32 +251,32 @@ void gb(double x[], double y[], double z[], double fx[],
 
                 //derivatives of g and gPrime with respect to orientation
                 dgx1=-(chi/2)*((dx/r)*(2*dotSByChi+2*dotDByChi)+chi*ex[j]
-                        *(dotDif*dotDByChi+dotSum*dotSByChi));
+                        *(dotDByChi2+dotSByChi2));
                 dgy1=-(chi/2)*((dy/r)*(2*dotSByChi+2*dotDByChi)+chi*ey[j]
-                        *(dotDif*dotDByChi+dotSum*dotSByChi));
+                        *(dotDByChi2+dotSByChi2));
                 dgz1=-(chi/2)*((dz/r)*(2*dotSByChi+2*dotDByChi)+chi*ez[j]
-                        *(dotDif*dotDByChi+dotSum*dotSByChi));
+                        *(dotDByChi2+dotSByChi2));
 
                 dgx2=-(chi/2)*((dx/r)*(2*dotSByChi+2*dotDByChi)+chi*ex[i]
-                        *(dotDif*dotDByChi+dotSum*dotSByChi));
+                        *(dotDByChi2+dotSByChi2));
                 dgy2=-(chi/2)*((dy/r)*(2*dotSByChi+2*dotDByChi)+chi*ey[i]
-                        *(dotDif*dotDByChi+dotSum*dotSByChi));
+                        *(dotDByChi2+dotSByChi2));
                 dgz2=-(chi/2)*((dz/r)*(2*dotSByChi+2*dotDByChi)+chi*ez[i]
-                        *(dotDif*dotDByChi+dotSum*dotSByChi));
+                        *(dotDByChi2+dotSByChi2));
 
                 dgpx1=-(chiPrime/2)*((dx/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ex[j]
-                        *(dotDif*dotDByChip+dotSum*dotSByChip));
+                        *(dotDByChip2+dotSByChip2));
                 dgpy1=-(chiPrime/2)*((dy/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ey[j]
-                        *(dotDif*dotDByChip+dotSum*dotSByChip));
+                        *(dotDByChip2+dotSByChip2));
                 dgpz1=-(chiPrime/2)*((dz/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ez[j]
-                        *(dotDif*dotDByChip+dotSum*dotSByChip));
+                        *(dotDByChip2+dotSByChip2));
 
                 dgpx2=-(chiPrime/2)*((dx/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ex[j]
-                        *(dotDif*dotDByChip+dotSum*dotSByChip));
+                        *(dotDByChip2+dotSByChip2));
                 dgpy2=-(chiPrime/2)*((dy/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ey[j]
-                        *(dotDif*dotDByChip+dotSum*dotSByChip));
+                        *(dotDByChip2+dotSByChip2));
                 dgpz2=-(chiPrime/2)*((dz/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ez[j]
-                        *(dotDif*dotDByChip+dotSum*dotSByChip));// I need to make this look cleaner!!!
+                        *(dotDByChip2+dotSByChip2));// I need to make this look cleaner!!!
 
                 //derivatives of R with respect to orientations
                 drx1=0.5*pow(distF/sigmaS,3)*dgx1;
@@ -291,13 +297,13 @@ void gb(double x[], double y[], double z[], double fx[],
                 depz2=chi*chi*pow(ePrime,3)*ez[i];
 
                 //derivatives of epsilon double prime wrt orientation
-                dex1=epsilonS*(ePn*mu*gPm1*dgpx1+gPm*nu*ePn1*dex1);
-                dey1=epsilonS*(ePn*mu*gPm1*dgpy1+gPm*nu*ePn1*dey1);
-                dez1=epsilonS*(ePn*mu*gPm1*dgpz1+gPm*nu*ePn1*dez1);
+                dex1=epsilonS*(ePn*mu*gPm1*dgpx1+gPm*nu*ePn1*depx1);
+                dey1=epsilonS*(ePn*mu*gPm1*dgpy1+gPm*nu*ePn1*depy1);
+                dez1=epsilonS*(ePn*mu*gPm1*dgpz1+gPm*nu*ePn1*depz1);
 
-                dex1=epsilonS*(ePn*mu*gPm1*dgpx2+gPm*nu*ePn1*dex2);
-                dey1=epsilonS*(ePn*mu*gPm1*dgpy2+gPm*nu*ePn1*dey2);
-                dez1=epsilonS*(ePn*mu*gPm1*dgpz2+gPm*nu*ePn1*dez2);
+                dex1=epsilonS*(ePn*mu*gPm1*dgpx2+gPm*nu*ePn1*depx2);
+                dey1=epsilonS*(ePn*mu*gPm1*dgpy2+gPm*nu*ePn1*depy2);
+                dez1=epsilonS*(ePn*mu*gPm1*dgpz2+gPm*nu*ePn1*depz2);
 
                 //force components
                 fxi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dx/r+(sigmaS/2)
@@ -633,7 +639,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=50000;//10*pow(10,3); //Number of time steps
+    int tau=10000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -642,7 +648,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=14.92472; //scaled density of 0.2
+    double l=13.92472; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -654,14 +660,14 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-    double I=1000.0;
+    double I=200.0;
     double sigE=3.0;
 
     int rand=1.0;//
     do {//
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
-        temp=0.9;//
+        temp=1.7;//
         init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
         //writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
@@ -680,7 +686,7 @@ int main(int argc, char** argv) {
 
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-		if(i<25000){
+		if(i<50000){
         	leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
 		}
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
