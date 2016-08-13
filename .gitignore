@@ -2,3 +2,5 @@
 /main
 *.data
 *.xyz
+*.swp
+a.out
