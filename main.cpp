@@ -1,6 +1,6 @@
 /*
  * File:   main.cpp,
- * Author: bryan
+ * Author: Bryan
  *
  * Created on January 6, 2016, 3:17 PM
  */
@@ -69,7 +69,6 @@ void bCond(double x[], double y[], double z[], double l, int n){
             }
         }
     }
-
 }//from ubbcluj
 
 void largeForce(double x[], double y[], double z[], double fx[], double fy[],
@@ -101,6 +100,10 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
         uyi=uy[i];
         uzi=uz[i];
 
+		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
+		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
+		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
+
         ux[i]=ux[i]+dt*(gx[i]/I+lm*ex[i]);
         uy[i]=uy[i]+dt*(gy[i]/I+lm*ey[i]);
         uz[i]=uz[i]+dt*(gz[i]/I+lm*ez[i]);
@@ -113,7 +116,9 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
 
         ex[i]=ex[i]/mag;
         ey[i]=ey[i]/mag;
-        ez[i]=ez[i]/mag;//just here to test remove and debug later
+        ez[i]=ez[i]/mag;//just here to test remove and debug latera
+		
+		K=K+0.5*I*(uxi*uxi+uyi*uyi+uzi*uzi);
 
         //if(i==1)
         //cout<<"("<<ex[i]<<","<<ey[i]<<","<<ez[i]<<")"<<endl<<endl;
@@ -326,21 +331,22 @@ void gb(double x[], double y[], double z[], double fx[],
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
 
-                gx[i]=gx[i]+gx1; gx[j]=gx[j]+gx2;
-                gy[i]=gy[i]+gy1; gy[j]=gy[j]+gy2;
-                gz[i]=gz[i]+gz1; gz[j]=gz[j]+gz2;
+                gx[i]=gx[i]-gx1; gx[j]=gx[j]-gx2;
+                gy[i]=gy[i]-gy1; gy[j]=gy[j]-gy2;
+                gz[i]=gz[i]-gz1; gz[j]=gz[j]-gz2;
 
                 //if(i==1){
                 //    cout<<gx[i]<<endl;
                 //}
 
            	    if(r<=1){
-            //            cout<<"fx("<< loop <<"," <<i << ", " << j<< "): " <<fxi<<endl;
-            //            cout<<"fy("<< loop <<"," <<i << ", " << j<< "): " <<fyi<<endl;
-            //            cout<<"fz("<< loop <<"," <<i << ", " << j<< "): " <<fzi<<endl;
-            //            cout<<"gx("<< loop <<"," <<i << ", " << j<< "): " <<gx1<<endl;
-            //            cout<<"gy("<< loop <<"," <<i << ", " << j<< "): " <<gy1<<endl;
-            //            cout<<"gz("<< loop <<"," <<i << ", " << j<< "): " <<gz1<<endl;
+						cout<<"r="<<r<<"    i="<<i<<"    j="<<j<<endl;
+                        cout<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
+                        cout<<"r2(" << x[j] <<"," << y[j] << ", " << z[j] << ")"<<endl;
+                        cout<<"e1(" << ex[i] <<","<< ey[i] <<", " << ez[i] << ")"<<endl;
+                        cout<<"e2(" << ex[j] <<","<< ey[j] << ", " << ez[j]<< ")"<<endl;
+                        cout<<"g1("<< gx1 <<"," << gy1 << ", " << gz1 << ")"<<endl;
+                        cout<<"gz("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl<<endl;
             //            cout<<"r: "<< r << endl;
 			//<< dx << "," << dy << "," << dz << ")" << endl;
             //            cout<<"dot 1: "<< dot1 << " dot 2: " << dot2 << " dot12: " << dot12 << endl;
@@ -385,9 +391,9 @@ void init(double x[], double y[], double z[], double vx[],
 
     for(int i=0; i<n; i++){
         m[i]=mass;
-        ex[i]=1;//dRand(0,1);
-        ey[i]=1;//dRand(0,1);
-        ez[i]=1;//dRand(0,1);
+        ex[i]=dRand(0,1);
+        ey[i]=dRand(0,1);
+        ez[i]=dRand(0,1);
         mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
         ex[i]=ex[i]/mag;
         ey[i]=ey[i]/mag;
@@ -640,7 +646,7 @@ int main(int argc, char** argv) {
     int n=256;
     //Time information
     int tau=10000;//10*pow(10,3); //Number of time steps
-    double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
+    double dT=0.00015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
     double mass=1;
@@ -648,7 +654,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=13.92472; //scaled density of 0.2
+    double l=14.92472; //scaled density of 0.2
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -660,7 +666,7 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-    double I=200.0;
+    double I=1.0;
     double sigE=3.0;
 
     int rand=1.0;//
@@ -678,15 +684,15 @@ int main(int argc, char** argv) {
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, 1);//
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
         bCond(x, y, z, l, n);//
-        temp=2*K/(3*n*kB);//
+        temp=2*K/(5*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>100);//
+    } while(temp>300);//
 
 
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-		if(i<50000){
+		if(i<5000){
         	leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
 		}
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
@@ -694,7 +700,7 @@ int main(int argc, char** argv) {
         //rescale(vx,vy,vz,ux,uy,uz,1.7,kB,n);
         //writeXYZ(x,y,z,n);
         E=K+V; //in scaled units
-        temp=2*K/(3*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
+        temp=2*K/(5*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
 
         if(i%100==0 || i==2){
             cout << "Loop# " << i << endl;
