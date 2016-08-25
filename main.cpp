@@ -104,9 +104,9 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
 		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
 		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
 
-        ux[i]=ux[i]+dt*(gx[i]/I+lm*ex[i]);
-        uy[i]=uy[i]+dt*(gy[i]/I+lm*ey[i]);
-        uz[i]=uz[i]+dt*(gz[i]/I+lm*ez[i]);
+        ux[i]=ux[i]+dt*(gx[i]/I)+lm*ex[i];
+        uy[i]=uy[i]+dt*(gy[i]/I)+lm*ey[i];
+        uz[i]=uz[i]+dt*(gz[i]/I)+lm*ez[i];
 
         ex[i]=ex[i]+dt*ux[i];
         ey[i]=ey[i]+dt*uy[i];
@@ -200,6 +200,9 @@ void gb(double x[], double y[], double z[], double fx[],
 
             double r2=dx*dx+dy*dy+dz*dz;
             double r=pow(r2,0.5);
+
+			double e1Mag=sqrt(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i]);
+			double e2Mag=sqrt(ex[j]*ex[j]+ey[j]*ey[j]+ez[j]*ez[j]);
 
             if(r2<rc2){
 
@@ -306,9 +309,9 @@ void gb(double x[], double y[], double z[], double fx[],
                 dey1=epsilonS*(ePn*mu*gPm1*dgpy1+gPm*nu*ePn1*depy1);
                 dez1=epsilonS*(ePn*mu*gPm1*dgpz1+gPm*nu*ePn1*depz1);
 
-                dex1=epsilonS*(ePn*mu*gPm1*dgpx2+gPm*nu*ePn1*depx2);
-                dey1=epsilonS*(ePn*mu*gPm1*dgpy2+gPm*nu*ePn1*depy2);
-                dez1=epsilonS*(ePn*mu*gPm1*dgpz2+gPm*nu*ePn1*depz2);
+                dex2=epsilonS*(ePn*mu*gPm1*dgpx2+gPm*nu*ePn1*depx2);
+                dey2=epsilonS*(ePn*mu*gPm1*dgpy2+gPm*nu*ePn1*depy2);
+                dez2=epsilonS*(ePn*mu*gPm1*dgpz2+gPm*nu*ePn1*depz2);
 
                 //force components
                 fxi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dx/r+(sigmaS/2)
@@ -339,24 +342,15 @@ void gb(double x[], double y[], double z[], double fx[],
                 //    cout<<gx[i]<<endl;
                 //}
 
-           	    if(r<=1){
+           	    if(r<=1 || isnan(gx1)==1 || isnan(gx2)==1){
 						cout<<"r="<<r<<"    i="<<i<<"    j="<<j<<endl;
                         cout<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
                         cout<<"r2(" << x[j] <<"," << y[j] << ", " << z[j] << ")"<<endl;
-                        cout<<"e1(" << ex[i] <<","<< ey[i] <<", " << ez[i] << ")"<<endl;
-                        cout<<"e2(" << ex[j] <<","<< ey[j] << ", " << ez[j]<< ")"<<endl;
+                        cout<<"e1(" << ex[i] <<","<< ey[i] <<", " << ez[i] << ") MAG: "<<e1Mag<<endl;
+                        cout<<"e2(" << ex[j] <<","<< ey[j] << ", " << ez[j]<< ") MAG: "<<e2Mag<<endl;
                         cout<<"g1("<< gx1 <<"," << gy1 << ", " << gz1 << ")"<<endl;
-                        cout<<"gz("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl<<endl;
-            //            cout<<"r: "<< r << endl;
-			//<< dx << "," << dy << "," << dz << ")" << endl;
-            //            cout<<"dot 1: "<< dot1 << " dot 2: " << dot2 << " dot12: " << dot12 << endl;
-            //            cout<<"distF: "<< distF << " chi: " << chi << " chiPrime " << chiPrime << endl;
-            //            cout<<"g: " << g << " gPrime: " << gPrime << " ePrime: " << ePn << endl;
-            //            cout<<"gHalf: " << gHalf << endl;
-            //            cout<<"dg: ("<< dgx <<"," << dgy << ", " << dgz << ")" << endl;
-            //            cout<<"dgPrime: (" << dgxPrime << "," << dgyPrime << "," << dgzPrime << ")" << endl;
-            //            cout<<"R: " << R << " R_6: " << R_6 << endl<<endl;
-            //            lrg++;
+                        cout<<"g2("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl;
+						cout<<"g: "<<g<<" dex1: "<<dex1<<" depx1: "<<depx1<<" eprime: " << ePrime <<endl<<endl;
            	    }
 
                 V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
@@ -614,9 +608,15 @@ void writeXYZ(double x[], double y[], double z[], int n){
 
         t=x[i]*100;
         j=y[i]*100;
-        k=z[i]*100;
-        o << "Ar" << "\t" <<  t << "\t" << j << "\t" << k << "\n";
+    }
+    o.close();
+}
 
+void writeEnergy(double V, double K, double E, int time){
+    ofstream o;
+    o.open("energy.data", ios::app);
+    o << time << "\t" << V << "\t" << K << "\t" << E << "\n";
+    o.close();
     }
     o.close();
 }
@@ -646,7 +646,7 @@ int main(int argc, char** argv) {
     int n=256;
     //Time information
     int tau=10000;//10*pow(10,3); //Number of time steps
-    double dT=0.00015;//pow(10,-4); //Length of time step ** used a smaller step
+    double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
     double mass=1;
