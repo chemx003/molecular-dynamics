@@ -2,7 +2,7 @@
  * File:   main.cpp,
  * Author: Bryan
  *
- * Created on January 6, 2016, 3:17 PM
+ * Last modified: 8/31 1045
  */
 
 #include <cstdlib>
@@ -112,11 +112,11 @@ void lfOrient(double ex[], double ey[], double ez[], double ux[],
         ey[i]=ey[i]+dt*uy[i];
         ez[i]=ez[i]+dt*uz[i];
 
-        double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
+        //double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
 
-        ex[i]=ex[i]/mag;
-        ey[i]=ey[i]/mag;
-        ez[i]=ez[i]/mag;//just here to test remove and debug latera
+        //ex[i]=ex[i]/mag;
+        //ey[i]=ey[i]/mag;
+        //ez[i]=ez[i]/mag;//just here to test remove and debug latera
 		
 		K=K+0.5*I*(uxi*uxi+uyi*uyi+uzi*uzi);
 
@@ -204,7 +204,7 @@ void gb(double x[], double y[], double z[], double fx[],
 			double e1Mag=sqrt(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i]);
 			double e2Mag=sqrt(ex[j]*ex[j]+ey[j]*ey[j]+ez[j]*ez[j]);
 
-            if(r2<rc2){
+            if(r2<rc2 || e1Mag>=1 || e2Mag>=1){
 
                 //dot products
                 dot1=dx*ex[i]+dy*ey[i]+dz*ez[i];
@@ -342,7 +342,7 @@ void gb(double x[], double y[], double z[], double fx[],
                 //    cout<<gx[i]<<endl;
                 //}
 
-           	    if(r<=1 || isnan(gx1)==1 || isnan(gx2)==1){
+           	    if(r<=0.8 || isnan(gx1)==1 || isnan(gx2)==1){
 						cout<<"r="<<r<<"    i="<<i<<"    j="<<j<<endl;
                         cout<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
                         cout<<"r2(" << x[j] <<"," << y[j] << ", " << z[j] << ")"<<endl;
@@ -612,13 +612,16 @@ void writeXYZ(double x[], double y[], double z[], int n){
     o.close();
 }
 
-void writeEnergy(double V, double K, double E, int time){
-    ofstream o;
-    o.open("energy.data", ios::app);
-    o << time << "\t" << V << "\t" << K << "\t" << E << "\n";
-    o.close();
-    }
-    o.close();
+void orientMag(double ex[], double ey[], double ez[], int n){
+	double mag;
+	
+	for(int i=0;i<n;i++){
+		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
+		
+		if(mag>=1){
+			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
+		}		
+	}
 }
 
 void writeEnergy(double V, double K, double E, int time){
@@ -645,7 +648,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=10000;//10*pow(10,3); //Number of time steps
+    int tau=40;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -689,10 +692,11 @@ int main(int argc, char** argv) {
         rand++;//
     } while(temp>300);//
 
+	orientMag(ex,ey,ez,n);
 
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-		if(i<5000){
+		if(i<50000){
         	leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
 		}
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
@@ -702,7 +706,7 @@ int main(int argc, char** argv) {
         E=K+V; //in scaled units
         temp=2*K/(5*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
 
-        if(i%100==0 || i==2){
+        if(i%10==0 || i==2){
             cout << "Loop# " << i << endl;
             cout << "V: " << V << endl;
             cout << "K: " << K << endl;
@@ -725,6 +729,6 @@ int main(int argc, char** argv) {
         ezAvg=ezAvg+ez[i];
     }
     exAvg=exAvg/n; eyAvg=eyAvg/n; ezAvg=ezAvg/n;
-    cout<<"(exAvg,eyAvg,ezAvg)=("<<exAvg<<","<<eyAvg<<","<<ezAvg<<")";
+	cout<<"(exAvg,eyAvg,ezAvg)=("<<exAvg<<","<<eyAvg<<","<<ezAvg<<")"<<endl;
     pairCor(x,y,z,n,l);
 }
