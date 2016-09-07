@@ -2,7 +2,7 @@
  * File:   main.cpp,
  * Author: Bryan
  *
- * Last modified: 8/31 1045
+ * Last modified: 9/1 1754
  */
 
 #include <cstdlib>
@@ -136,8 +136,12 @@ double dRand(double dMin, double dMax){
 }
 
 void halfstep(double x[], double y[], double z[], double vx[], double vy[],
-        double vz[], double fx[], double fy[], double fz[], double mass,
-        double dt, int n){
+        double vz[], double fx[], double fy[], double fz[], double ex[],
+		double ey[], double ez[], double ux[], double uy[], double uz[],
+		double gx[], double gy[], double gz[], double mass, double dt, 
+		int n, double I){
+	
+	double lm;
 
     for(int i=0; i<n; i++){
         vx[i]=vx[i]+0.5*dt*fx[i]/mass;
@@ -150,6 +154,24 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
         y[i]=y[i]+dt*vy[i];
         z[i]=z[i]+dt*vz[i];
     }
+	
+	for(int i=0; i<n; i++){
+		lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+		
+		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
+		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
+		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
+
+        ux[i]=ux[i]+0.5*dt*(gx[i]/I)+2*lm*ex[i];
+        uy[i]=uy[i]+0.5*dt*(gy[i]/I)+2*lm*ey[i];
+        uz[i]=uz[i]+0.5*dt*(gz[i]/I)+2*lm*ez[i];	
+	}
+
+	for(int i=0; i<n; i++){
+		ex[i]=ex[i]+dt*ux[i];
+        ey[i]=ey[i]+dt*uy[i];
+        ez[i]=ez[i]+dt*uz[i];	
+	}
 }
 
 void gb(double x[], double y[], double z[], double fx[],
@@ -204,7 +226,7 @@ void gb(double x[], double y[], double z[], double fx[],
 			double e1Mag=sqrt(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i]);
 			double e2Mag=sqrt(ex[j]*ex[j]+ey[j]*ey[j]+ez[j]*ez[j]);
 
-            if(r2<rc2 || e1Mag>=1 || e2Mag>=1){
+            if(r2<rc2){
 
                 //dot products
                 dot1=dx*ex[i]+dy*ey[i]+dz*ez[i];
@@ -618,7 +640,7 @@ void orientMag(double ex[], double ey[], double ez[], int n){
 	for(int i=0;i<n;i++){
 		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
 		
-		if(mag>=1){
+		if(mag>1){
 			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
 		}		
 	}
@@ -648,7 +670,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=40;//10*pow(10,3); //Number of time steps
+    int tau=10;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -677,10 +699,11 @@ int main(int argc, char** argv) {
         //Random seed;
         srand(rand*time(NULL));//time(NULL)
         temp=1.7;//
-        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
+        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);	
         //writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
-        halfstep(x, y, z, vx, vy, vz,fx, fy, fz, mass, dT, n);
+        halfstep(x, y, z, vx, vy, vz,fx, fy, fz,ex,ey,ez,ux,uy,uz,gx,gy,gz, mass, dT, n, I);
+		orientMag(ex,ey,ez,n);
         bCond(x, y, z, l, n);
         //writeXYZ(x, y, z, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);//
@@ -690,9 +713,7 @@ int main(int argc, char** argv) {
         temp=2*K/(5*n*kB);//
         cout<<temp<<endl;//
         rand++;//
-    } while(temp>300);//
-
-	orientMag(ex,ey,ez,n);
+    } while(temp>300);//	
 
     for(int i=2; i<tau; i++){
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
