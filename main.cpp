@@ -2,7 +2,6 @@
  * File:   main.cpp,
  * Author: Bryan
  *
- * Last modified: 9/8
  */
 
 #include <cstdlib>
@@ -72,51 +71,6 @@ void bCond(double x[], double y[], double z[], double l, int n){
         }
     }
 }//from ubbcluj
-
-/*Integration of rotational motion after the derivatives of the
-potential are calculated -should combine with leapfrog()*/
-void lfOrient(double ex[], double ey[], double ez[], double ux[],
-        double uy[], double uz[], double gx[], double gy[], double gz[],
-        double x[], double y[], double z[], double I, double& K, double dt,
-        int n, double l, int loop){
-
-    double lm, uxi, uyi, uzi;
-
-    for(int i=0; i<n; i++){
-
-		//Calculate lagrange multiplier to constrain length
-        lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
-		
-		//Save old velocities for energy calculation
-        uxi=ux[i];
-        uyi=uy[i];
-        uzi=uz[i];
-		
-		//Take perpendicular component of the gorque
-		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
-		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
-		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
-		
-		//Advance angular velocities
-        ux[i]=ux[i]+dt*(gx[i]/I)+lm*ex[i];
-        uy[i]=uy[i]+dt*(gy[i]/I)+lm*ey[i];
-        uz[i]=uz[i]+dt*(gz[i]/I)+lm*ez[i];
-
-		//Advance orentaions
-        ex[i]=ex[i]+dt*ux[i];
-        ey[i]=ey[i]+dt*uy[i];
-        ez[i]=ez[i]+dt*uz[i];
-
-		//Add rotational kinetic energy to total kinetic
-		K=K+0.5*I*(uxi*uxi+uyi*uyi+uzi*uzi);
-
-        /*double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
-
-        ex[i]=ex[i]/mag;
-        ey[i]=ey[i]/mag;
-        ez[i]=ez[i]/mag;*/
-    }
-}
 
 /*Generates a random double between dMin and dMax*/
 double dRand(double dMin, double dMax){
@@ -503,7 +457,7 @@ void init(double x[], double y[], double z[], double vx[],
 
 /*Calculates average orientation and scalar order parameter once
 I implement that*/
-void orentationInfo(double ex[], double ey[], double ez[], int n){
+void orientationInfo(double ex[], double ey[], double ez[], int n){
 	
 	double exAvg, eyAvg, ezAvg;
 
@@ -568,15 +522,18 @@ double pairCor(double x[], double y[], double z[], int n, double l){
 
 }
 
-/*Integrates translational motion of the particles*/
+/*Integrates motion of the particles*/
 void leapfrog(double x[], double y[], double z[], double vx[],
         double vy[], double vz[], double fx[], double fy[], double fz[],
-        double mass, double& K, double dt, int n, double& sumvx,
+		double ex[], double ey[], double ez[], double ux[], double uy[],
+		double uz[], double gx[], double gy[], double gz[], double mass,
+        double I, double& K, double dt, int n, double& sumvx,
         double& sumvy, double& sumvz, double l, int loop){
 
     double dtSqr=dt*dt;
     double dt2=2*dt;
     double xNEW, yNEW, zNEW, vxi, vyi, vzi;
+	double lm, uxi, uyi, uzi;
 	
 	//reset quantities
     K=0; sumvx=0; sumvy=0; sumvz=0;
@@ -600,13 +557,40 @@ void leapfrog(double x[], double y[], double z[], double vx[],
 		//calculate velocity at t
 	    vxi=0.5*(vxi+vx[i]);
         vyi=0.5*(vyi+vy[i]);
-        vzi=0.5*(vzi+vz[i]);	
+        vzi=0.5*(vzi+vz[i]);
 
-        K=K+vxi*vxi+vyi*vyi+vzi*vzi;
+		//Calculate lagrange multiplier to constrain length
+        lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+		
+		//Save old velocities for energy calculation
+        uxi=ux[i];
+        uyi=uy[i];
+        uzi=uz[i];
+		
+		//Take perpendicular component of the gorque
+		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
+		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
+		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
+		
+		//Advance angular velocities
+        ux[i]=ux[i]+dt*(gx[i]/I)+lm*ex[i];
+        uy[i]=uy[i]+dt*(gy[i]/I)+lm*ey[i];
+        uz[i]=uz[i]+dt*(gz[i]/I)+lm*ez[i];
+
+		//Advance orentaions
+        ex[i]=ex[i]+dt*ux[i];
+        ey[i]=ey[i]+dt*uy[i];
+        ez[i]=ez[i]+dt*uz[i];
+
+		/*double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
+
+        ex[i]=ex[i]/mag;
+        ey[i]=ey[i]/mag;
+        ez[i]=ez[i]/mag;*/
+
+		//Calculate total kinetic energy
+		K=K+0.5*mass*(vxi*vxi+vyi*vyi+vzi*vzi)+0.5*I*(uxi*uxi+uyi*uyi+uzi*uzi);
     }
-
-	//Calculate kinetic energy
-    K=0.5*mass*K;
 }
 
 void orientMag(double ex[], double ey[], double ez[], int n){
@@ -677,7 +661,8 @@ int main(int argc, char** argv) {
     double I=1.0;
 
     double sigE=3.0;
-
+	int rand=1;
+	
 	/*Initialize and reinitialize until the teperature is acceptable*/
     do {
         srand(time(NULL));
@@ -688,8 +673,8 @@ int main(int argc, char** argv) {
 		orientMag(ex,ey,ez,n);
         bCond(x, y, z, l, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, 1);
-        lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
+				 K, dT, n, sumvx, sumvy, sumvz, l, 1);
         bCond(x, y, z, l, n);
         temp=2*K/(5*n*kB);
         cout<<temp<<endl;
@@ -700,8 +685,8 @@ int main(int argc, char** argv) {
 
 		//Calculate forces and torques, translate and rotate
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
-        lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
+				 K, dT, n, sumvx, sumvy, sumvz, l, 1); 
         bCond(x, y, z, l, n);
 		
 		//Calculate total energy
