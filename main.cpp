@@ -2,7 +2,7 @@
  * File:   main.cpp,
  * Author: Bryan
  *
- * Last modified: 9/1 1754
+ * Last modified: 9/8
  */
 
 #include <cstdlib>
@@ -14,6 +14,8 @@
 
 using namespace std;
 
+/*Implementation of periodic boundary conditions. Updates positions
+  after particle positions are incremented each timestep*/
 void bCond(double x[], double y[], double z[], double l, int n){
 
        for(int i=0; i<n; i++){
@@ -71,70 +73,60 @@ void bCond(double x[], double y[], double z[], double l, int n){
     }
 }//from ubbcluj
 
-void largeForce(double x[], double y[], double z[], double fx[], double fy[],
-        double fz[], double E, int n){
-    ofstream o;
-    o.open("large_force.dat");
-    o << "#" << "\t" << "x" << "\t" << "fx" << "\t" << E << endl;
-
-    for(int i=0; i<n; i++){
-        if(abs(fx[i])>0){
-            o << i << "\t" << x[i] << "\t" << fx[i] << endl;
-        }
-    }
-    o.close();
-}
-
+/*Integration of rotational motion after the derivatives of the
+potential are calculated -should combine with leapfrog()*/
 void lfOrient(double ex[], double ey[], double ez[], double ux[],
         double uy[], double uz[], double gx[], double gy[], double gz[],
         double x[], double y[], double z[], double I, double& K, double dt,
         int n, double l, int loop){
-    double lm, uxi, uyi, uzi;
 
+    double lm, uxi, uyi, uzi;
 
     for(int i=0; i<n; i++){
 
+		//Calculate lagrange multiplier to constrain length
         lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
-
-        uxi=ux[i]; //saving old velocities for energy calc.
+		
+		//Save old velocities for energy calculation
+        uxi=ux[i];
         uyi=uy[i];
         uzi=uz[i];
-
+		
+		//Take perpendicular component of the gorque
 		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
 		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
 		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
-
+		
+		//Advance angular velocities
         ux[i]=ux[i]+dt*(gx[i]/I)+lm*ex[i];
         uy[i]=uy[i]+dt*(gy[i]/I)+lm*ey[i];
         uz[i]=uz[i]+dt*(gz[i]/I)+lm*ez[i];
 
+		//Advance orentaions
         ex[i]=ex[i]+dt*ux[i];
         ey[i]=ey[i]+dt*uy[i];
         ez[i]=ez[i]+dt*uz[i];
 
-        //double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
-
-        //ex[i]=ex[i]/mag;
-        //ey[i]=ey[i]/mag;
-        //ez[i]=ez[i]/mag;//just here to test remove and debug latera
-		
+		//Add rotational kinetic energy to total kinetic
 		K=K+0.5*I*(uxi*uxi+uyi*uyi+uzi*uzi);
 
-        //if(i==1)
-        //cout<<"("<<ex[i]<<","<<ey[i]<<","<<ez[i]<<")"<<endl<<endl;
+        /*double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
 
-        //if(mag>=1){
-        //   cout<< i << " (" << mag << ")" << endl;
-        //}
-        //don't forget to calculate energy from rotation
+        ex[i]=ex[i]/mag;
+        ey[i]=ey[i]/mag;
+        ez[i]=ez[i]/mag;*/
     }
 }
 
+/*Generates a random double between dMin and dMax*/
 double dRand(double dMin, double dMax){
+
     double d = (double)rand()/RAND_MAX;
     return dMin + d*(dMax-dMin);
 }
 
+/*Increments the velocity and angular velocity half a timestep and the 
+position and orientation a full timestep*/
 void halfstep(double x[], double y[], double z[], double vx[], double vy[],
         double vz[], double fx[], double fy[], double fz[], double ex[],
 		double ey[], double ez[], double ux[], double uy[], double uz[],
@@ -144,47 +136,62 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 	double lm;
 
     for(int i=0; i<n; i++){
+		
+		//Advance velocities 1/2 timestep
         vx[i]=vx[i]+0.5*dt*fx[i]/mass;
         vy[i]=vy[i]+0.5*dt*fy[i]/mass;
         vz[i]=vz[i]+0.5*dt*fz[i]/mass;
     }
 
     for(int i=0; i<n; i++){
+
+		//Advance positions 1 timestep
         x[i]=x[i]+dt*vx[i];
         y[i]=y[i]+dt*vy[i];
         z[i]=z[i]+dt*vz[i];
     }
 	
 	for(int i=0; i<n; i++){
+
+		//Calculate lagrange multiplier to constrain length
 		lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
 		
+		//Take perpendicular component of the gorque
 		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
 		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
 		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
 
+		//Advance angular velocities 1/2 timestep
         ux[i]=ux[i]+0.5*dt*(gx[i]/I)+2*lm*ex[i];
         uy[i]=uy[i]+0.5*dt*(gy[i]/I)+2*lm*ey[i];
         uz[i]=uz[i]+0.5*dt*(gz[i]/I)+2*lm*ez[i];	
 	}
 
 	for(int i=0; i<n; i++){
+
+		//Advance orientations 1 timestep
 		ex[i]=ex[i]+dt*ux[i];
         ey[i]=ey[i]+dt*uy[i];
         ez[i]=ez[i]+dt*uz[i];	
 	}
 }
 
+/*Calculation of the intermolecular forces and torques*/
 void gb(double x[], double y[], double z[], double fx[],
         double fy[], double fz[], double ex[], double ey[], double ez[],
         double gx[], double gy[], double gz[], double& V, double l,
         double& P, double kB, double T, int n, double sigE, int loop){
-    double mu=2.0, nu=1.0;
-    double dx, dy, dz;
+
+	//Simulation parameters
+    double mu=2.0, nu=1.0; 
     double sigmaE=sigE, sigmaS=1.0, epsilonE=5.0, epsilonS=1.0;
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonE/epsilonS;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
     double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
     double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
+
+	//Calculated quantities
+	double dx, dy, dz;
     double dot1, dot2, dot12, dot122, dotSum, dotSum2, dotDif, dotDif2;
     double g, gPrime, gHalf, dgx, dgy, dgz, dgxPrime, dgyPrime, dgzPrime;
     double R, R_1, R_2, R_6, R_7, R_12, R_13, distF;
@@ -193,38 +200,40 @@ void gb(double x[], double y[], double z[], double fx[],
     double dotSByChi, dotDByChi, dotSByChip, dotDByChip;
 	double dotSByChi2, dotDByChi2, dotSByChip2, dotDByChip2;
     double dex1, dey1, dez1, dex2, dey2, dez2;
-    double depx1, depy1, depz1, depx2, depy2, depz2;//derivatives of epsilon single prime wrt orientation
-    double drx1,dry1,drz1,drx2,dry2,drz2;//derivatives of r wrt orientation
+    double depx1, depy1, depz1, depx2, depy2, depz2;
+    double drx1,dry1,drz1,drx2,dry2,drz2;
     double dgx1,dgy1,dgz1,dgx2,dgy2,dgz2;
     double dgpx1,dgpy1,dgpz1,dgpx2,dgpy2,dgpz2;
+	double r, r2, e1Mag, e2Mag;
 
-    V=0;
-    P=0;
-
+	//Resetting quantities
     for(int i=0; i<n; i++){
         fx[i]=0; gx[i]=0;
         fy[i]=0; gy[i]=0;
         fz[i]=0; gz[i]=0;
     }
+	V=0;
+    P=0;
 
-    int lrg=0;
-
+	//Main loop
     for(int i=0; i<n-1; i++){
         for(int j=i+1; j<n; j++){
 
-            dx=x[i]-x[j]; //components of distance vector
+			//components of separation vector
+            dx=x[i]-x[j]; 
             dy=y[i]-y[j];
             dz=z[i]-z[j];
-
-            dx=dx-l*round(dx/l); //correct for min image convention
-            dy=dy-l*round(dy/l); //from frenkel... we'll see how this goes
+			
+			//Minimum image convention
+            dx=dx-l*round(dx/l);
+            dy=dy-l*round(dy/l); 
             dz=dz-l*round(dz/l);
-
-            double r2=dx*dx+dy*dy+dz*dz;
-            double r=pow(r2,0.5);
-
-			double e1Mag=sqrt(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i]);
-			double e2Mag=sqrt(ex[j]*ex[j]+ey[j]*ey[j]+ez[j]*ez[j]);
+			
+			//Magnitudes of separation and orientation vectors
+            r2=dx*dx+dy*dy+dz*dz;
+            r=pow(r2,0.5);
+			e1Mag=sqrt(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i]);
+			e2Mag=sqrt(ex[j]*ex[j]+ey[j]*ey[j]+ez[j]*ez[j]);
 
             if(r2<rc2){
 
@@ -306,7 +315,7 @@ void gb(double x[], double y[], double z[], double fx[],
                 dgpy2=-(chiPrime/2)*((dy/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ey[j]
                         *(dotDByChip2+dotSByChip2));
                 dgpz2=-(chiPrime/2)*((dz/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ez[j]
-                        *(dotDByChip2+dotSByChip2));// I need to make this look cleaner!!!
+                        *(dotDByChip2+dotSByChip2));
 
                 //derivatives of R with respect to orientations
                 drx1=0.5*pow(distF/sigmaS,3)*dgx1;
@@ -337,7 +346,7 @@ void gb(double x[], double y[], double z[], double fx[],
 
                 //force components
                 fxi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dx/r+(sigmaS/2)
-                    /(pow(g,1.5))*dgx)+mu*gPm1*(R_12-R_6)*dgxPrime); //forces between the pairs
+                    /(pow(g,1.5))*dgx)+mu*gPm1*(R_12-R_6)*dgxPrime); 
                 fyi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dy/r+(sigmaS/2)
                     /(pow(g,1.5))*dgy)+mu*gPm1*(R_12-R_6)*dgyPrime);
                 fzi=-epsilonS*(ePn*gPm*(6*R_7-12*R_13)*(dz/r+(sigmaS/2)
@@ -351,19 +360,18 @@ void gb(double x[], double y[], double z[], double fx[],
                 gx2=(R_12-R_6)*dex2+g*(6*R_7-12*R_13)*drx2;
                 gy2=(R_12-R_6)*dey2+g*(6*R_7-12*R_13)*dry2;
                 gz2=(R_12-R_6)*dez2+g*(6*R_7-12*R_13)*drz2;
-
-                fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; //total force on particle
+				
+				//Summing forces
+                fx[i]=fx[i]+fxi; fx[j]=fx[j]-fxi; 
                 fy[i]=fy[i]+fyi; fy[j]=fy[j]-fyi;
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
 
+				//Summing torques
                 gx[i]=gx[i]-gx1; gx[j]=gx[j]-gx2;
                 gy[i]=gy[i]-gy1; gy[j]=gy[j]-gy2;
                 gz[i]=gz[i]-gz1; gz[j]=gz[j]-gz2;
-
-                //if(i==1){
-                //    cout<<gx[i]<<endl;
-                //}
-
+				
+				//check if particles are over lapping or gorques are NaN
            	    if(r<=0.8 || isnan(gx1)==1 || isnan(gx2)==1){
 						cout<<"r="<<r<<"    i="<<i<<"    j="<<j<<endl;
                         cout<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
@@ -375,23 +383,22 @@ void gb(double x[], double y[], double z[], double fx[],
 						cout<<"g: "<<g<<" dex1: "<<dex1<<" depx1: "<<depx1<<" eprime: " << ePrime <<endl<<endl;
            	    }
 
+				//Calculate potential
                 V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
-                //cout<<V<<endl;
-                P=P+fxi*dx+fyi*dy+fzi*dz;//pressure
+
+				//Calculate Pressure
+                P=P+fxi*dx+fyi*dy+fzi*dz;
             }
         }
     }
-//    cout<<"LARGE INIDENTS: "<<lrg<<endl<< endl;
-//    double sumx=0;
-//    for(int i=0; i<n ; i++){
-//        sumx=sumx+fx[i];
-//    }
-//    cout<<sumx<<endl; //Checking if sum of forces = 0;
-    P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3; P=P/(l*l*l*pow(10,-18));
-    //converted to Pa
-
+	//Pressure converted to Pa -should move this
+    P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3;
+	P=P/(l*l*l*pow(10,-18));
 }
 
+/*Places particles on a cubic lattice with random deviations from 
+lattice sites, random orientations, velocities, etc. according to 
+specified temperature*/
 void init(double x[], double y[], double z[], double vx[],
         double vy[], double vz[], double ux[], double uy[], double uz[],
         double ex[], double ey[], double ez[],
@@ -404,31 +411,41 @@ void init(double x[], double y[], double z[], double vx[],
     double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
     double sumu2x=0.0, sumu2y=0.0, sumu2z=0.0;
     double mag;//unit vector magnitude
+	int N, p; double a;
+	double fsvx, fsvy, fsvz, fsux, fsuy, fsuz;
 
     for(int i=0; i<n; i++){
+
         m[i]=mass;
+		
+		//Assign random orientation to each molecule
         ex[i]=dRand(0,1);
         ey[i]=dRand(0,1);
         ez[i]=dRand(0,1);
+		
+		//Make orientation vector unit length
         mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
         ex[i]=ex[i]/mag;
         ey[i]=ey[i]/mag;
         ez[i]=ez[i]/mag;
     }
 
-    int N=ceil(pow(n,1.0/3.0)); //Third root of n to find # of particles in a direction
-    double a=l/N; //spacing
+    N=ceil(pow(n,1.0/3.0)); //Third root of n to find # of particles in a direction
+    a=l/N; //spacing
 
-    int p=0; //number of particles placed
+    p=0; //number of particles placed
 
     for(int i=0; i<N; i++){
         for(int j=0; j<N; j++){
             for(int k=0; k<N; k++){
                 if(p<n){
+					
+					//place particles on lattice sites with random deviations
                     x[p]=(i+0.5+dRand(-0.1,0.1))*a;
                     y[p]=(j+0.5+dRand(-0.1,0.1))*a;
                     z[p]=(k+0.5+dRand(-0.1,0.1))*a;
-
+					
+					//assign random velocities and ang. velocities
                     vx[p]=dRand(-0.5,0.5);
                     vy[p]=dRand(-0.5,0.5);
                     vz[p]=dRand(-0.5,0.5);
@@ -436,14 +453,11 @@ void init(double x[], double y[], double z[], double vx[],
                     ux[p]=dRand(-0.5,0.5);
                     uy[p]=dRand(-0.5,0.5);
                     uz[p]=dRand(-0.5,0.5);
-
+					
+					//Sum velocities and squares for energy and mtm
                     sumvx=sumvx+vx[p];
                     sumvy=sumvy+vy[p];
                     sumvz=sumvz+vz[p];
-
-                    sumux=sumux+ux[p];
-                    sumuy=sumuy+uy[p];
-                    sumuz=sumuz+uz[p];
 
                     sumv2x=sumv2x+pow(vx[p],2);
                     sumv2y=sumv2y+pow(vy[p],2);
@@ -456,21 +470,27 @@ void init(double x[], double y[], double z[], double vx[],
                 p++;
             }
         }
-    }//Places particle in lattice & assigns random velocities
+    }
+	
+	//cm velocity of system
+    sumvx=sumvx/n; sumvy=sumvy/n; sumvz=sumvz/n;
 
-    sumvx=sumvx/n; sumvy=sumvy/n; sumvz=sumvz/n; //cm velocities
-    sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n; //mean-squared velocities
+	//mean squared velocities
+    sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n;
     sumu2x=sumu2x/n; sumu2y=sumu2y/n; sumu2z=sumu2z/n;
 
-    double fsvx=sqrt(kB*temp/sumv2x);
-    double fsvy=sqrt(kB*temp/sumv2y);
-    double fsvz=sqrt(kB*temp/sumv2z);
+	//calculate scaling factors to set correct temperature
+    fsvx=sqrt(kB*temp/sumv2x);
+    fsvy=sqrt(kB*temp/sumv2y);
+    fsvz=sqrt(kB*temp/sumv2z);
 
-    double fsux=sqrt(kB*temp/sumu2x);
-    double fsuy=sqrt(kB*temp/sumu2y);
-    double fsuz=sqrt(kB*temp/sumu2z);
+    fsux=sqrt(kB*temp/sumu2x);
+    fsuy=sqrt(kB*temp/sumu2y);
+    fsuz=sqrt(kB*temp/sumu2z);
 
     for(int i=0; i<n; i++){
+
+		//scale velocites and ang. velocities
         vx[i]=(vx[i]-sumvx)*fsvx;
         vy[i]=(vy[i]-sumvy)*fsvy;
         vz[i]=(vz[i]-sumvz)*fsvz;
@@ -481,64 +501,31 @@ void init(double x[], double y[], double z[], double vx[],
     }
 }
 
-void rescale(double vx[],double vy[], double vz[], double ux[],
-        double uy[], double uz[], double temp, double kB, int n){
-
-    double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
-    double sumux=0.0, sumuy=0.0, sumuz=0.0;
-    double sumx=0.0, sumy=0.0, sumz=0.0; // for debugging get rid of later
-    double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
-    double sumu2x=0.0, sumu2y=0.0, sumu2z=0.0;
-    double mag;//unit vector magnitude
-
-    for(int p=0; p<n; p++){
-
-                    sumvx=sumvx+vx[p];
-                    sumvy=sumvy+vy[p];
-                    sumvz=sumvz+vz[p];
-
-                    sumux=sumux+ux[p];
-                    sumuy=sumuy+uy[p];
-                    sumuz=sumuz+uz[p];
-
-                    sumv2x=sumv2x+pow(vx[p],2);
-                    sumv2y=sumv2y+pow(vy[p],2);
-                    sumv2z=sumv2z+pow(vz[p],2);
-
-                    sumu2x=sumu2x+pow(ux[p],2);
-                    sumu2y=sumu2y+pow(uy[p],2);
-                    sumu2z=sumu2z+pow(uz[p],2);
-                }
-
-    sumvx=sumvx/n; sumvy=sumvy/n; sumvz=sumvz/n; //cm velocities
-    sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n; //mean-squared velocities
-    sumu2x=sumu2x/n; sumu2y=sumu2y/n; sumu2z=sumu2z/n;
-
-    double fsvx=sqrt(kB*temp/sumv2x);
-    double fsvy=sqrt(kB*temp/sumv2y);
-    double fsvz=sqrt(kB*temp/sumv2z);
-
-    double fsux=sqrt(kB*temp/sumu2x);
-    double fsuy=sqrt(kB*temp/sumu2y);
-    double fsuz=sqrt(kB*temp/sumu2z);
+/*Calculates average orientation and scalar order parameter once
+I implement that*/
+void orentationInfo(double ex[], double ey[], double ez[], int n){
+	
+	double exAvg, eyAvg, ezAvg;
 
     for(int i=0; i<n; i++){
-        vx[i]=(vx[i]-sumvx)*fsvx;
-        vy[i]=(vy[i]-sumvy)*fsvy;
-        vz[i]=(vz[i]-sumvz)*fsvz;
-
-        ux[i]=(ux[i])*fsux;
-        uy[i]=(uy[i])*fsuy;
-        uz[i]=(uz[i])*fsuz;
+        exAvg=exAvg+ex[i];
+        eyAvg=eyAvg+ey[i];
+        ezAvg=ezAvg+ez[i];
     }
+
+    exAvg=exAvg/n; eyAvg=eyAvg/n; ezAvg=ezAvg/n;
+	cout<<"(exAvg,eyAvg,ezAvg)=("<<exAvg<<","<<eyAvg<<","<<ezAvg<<")"<<endl;
 }
 
+/*Calculates the pair correlation function of the system -need to 
+implement to take the average over the last couple timesteps. 
+Example in Frenkel*/
 double pairCor(double x[], double y[], double z[], int n, double l){
     int bins=180;
     double histo[bins][2]; //forty bins
     double R=0;
     double dR=1.0/30;//need to change numerator depending on particle!!!
-    double dx, dy, dz;
+    double dx, dy, dz, r;
 
     for(int b=0; b<bins; b++){
         histo[b][0]=R;
@@ -546,18 +533,21 @@ double pairCor(double x[], double y[], double z[], int n, double l){
         for(int i=0; i<n-1; i++){
             for(int j=i+1; j<n; j++){
 
-
-                dx=x[i]-x[j]; //components of distance vector
+				//components of separation vector
+                dx=x[i]-x[j];
                 dy=y[i]-y[j];
                 dz=z[i]-z[j];
 
-                dx=dx-l*round(dx/l); //correct for min image convention
+				//correct for min image convention
+                dx=dx-l*round(dx/l); 
                 dy=dy-l*round(dy/l);
                 dz=dz-l*round(dz/l);
-
-                double r=sqrt(dx*dx+dy*dy+dz*dz);
-
-                if(r>R and r<R+dR){
+				
+				//magnitude of separation
+                r=sqrt(dx*dx+dy*dy+dz*dz);
+				
+				//check if particle in shell
+                if(r>R && r<R+dR){
                     histo[b][1]++;
                 }
             }
@@ -578,6 +568,7 @@ double pairCor(double x[], double y[], double z[], int n, double l){
 
 }
 
+/*Integrates translational motion of the particles*/
 void leapfrog(double x[], double y[], double z[], double vx[],
         double vy[], double vz[], double fx[], double fy[], double fz[],
         double mass, double& K, double dt, int n, double& sumvx,
@@ -586,66 +577,56 @@ void leapfrog(double x[], double y[], double z[], double vx[],
     double dtSqr=dt*dt;
     double dt2=2*dt;
     double xNEW, yNEW, zNEW, vxi, vyi, vzi;
+	
+	//reset quantities
     K=0; sumvx=0; sumvy=0; sumvz=0;
 
     for(int i=0; i<n; i++){
 
-        vxi=vx[i]; //save old velocities for energy calculation
+		//save old velocities for energy calculation
+        vxi=vx[i]; 
         vyi=vy[i];
         vzi=vz[i];
-
+		
+		//advance velocites and positions
         vx[i]=vx[i]+dt*fx[i]/mass;
         vy[i]=vy[i]+dt*fy[i]/mass;
         vz[i]=vz[i]+dt*fz[i]/mass;
-
-        vxi=0.5*(vxi+vx[i]);
-        vyi=0.5*(vyi+vy[i]);
-        vzi=0.5*(vzi+vz[i]);
 
         x[i]=x[i]+dt*vx[i];
         y[i]=y[i]+dt*vy[i];
         z[i]=z[i]+dt*vz[i];
 
+		//calculate velocity at t
+	    vxi=0.5*(vxi+vx[i]);
+        vyi=0.5*(vyi+vy[i]);
+        vzi=0.5*(vzi+vz[i]);	
+
         K=K+vxi*vxi+vyi*vyi+vzi*vzi;
-
-        sumvx=sumvx+vxi;//velocity of the center of mass
-        sumvy=sumvy+vyi;
-        sumvz=sumvz+vzi;
     }
-    K=0.5*mass*K; //Just assuming one mass for now
-}
 
-void track(int p, double x[], double y[], double z[],double loop){
-    cout<<loop<<" ("<<x[p]<<","<< y[p]<< "," << z[p]<<")"<<endl;
-}
-
-void writeXYZ(double x[], double y[], double z[], int n){
-    ofstream o;
-    o.open("random-testing.xyz",ios::app); //I should make this a setting in main())
-    double t,j,k;
-
-    o << 255 << endl;
-
-    for(int i=0; i<n; i++){
-
-        t=x[i]*100;
-        j=y[i]*100;
-    }
-    o.close();
+	//Calculate kinetic energy
+    K=0.5*mass*K;
 }
 
 void orientMag(double ex[], double ey[], double ez[], int n){
+
 	double mag;
 	
 	for(int i=0;i<n;i++){
+
+		//calculate magnitude of orientation vector
 		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
 		
+		//print to terminal if mag>1
 		if(mag>1){
 			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
 		}		
 	}
 }
 
+/*Writes out potential, kinetic, and total energy to a
+3-column tab separated data file*/
 void writeEnergy(double V, double K, double E, int time){
     ofstream o;
     o.open("energy.data", ios::app);
@@ -653,6 +634,8 @@ void writeEnergy(double V, double K, double E, int time){
     o.close();
 }
 
+/*Writes out positions and orientations to a 6-column
+tab seperated data file*/
 void writeVectors(double x[], double y[], double z[],
     double ex[], double ey[], double ez[], double i, int n){
 
@@ -679,7 +662,7 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=14.92472; //scaled density of 0.2
+    double l=14.92472;
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
@@ -692,40 +675,40 @@ int main(int argc, char** argv) {
     double P;
     //moment of inertia
     double I=1.0;
+
     double sigE=3.0;
 
-    int rand=1.0;//
-    do {//
-        //Random seed;
-        srand(rand*time(NULL));//time(NULL)
-        temp=1.7;//
-        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);	
-        //writeXYZ(x, y, z, n);
+	/*Initialize and reinitialize until the teperature is acceptable*/
+    do {
+        srand(time(NULL));
+        temp=1.7;
+        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
         halfstep(x, y, z, vx, vy, vz,fx, fy, fz,ex,ey,ez,ux,uy,uz,gx,gy,gz, mass, dT, n, I);
 		orientMag(ex,ey,ez,n);
         bCond(x, y, z, l, n);
-        //writeXYZ(x, y, z, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);//
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, 1);//
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, 1);
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,1);
-        bCond(x, y, z, l, n);//
-        temp=2*K/(5*n*kB);//
-        cout<<temp<<endl;//
-        rand++;//
-    } while(temp>300);//	
+        bCond(x, y, z, l, n);
+        temp=2*K/(5*n*kB);
+        cout<<temp<<endl;
+        rand++;
+    } while(temp>300);
 
     for(int i=2; i<tau; i++){
+
+		//Calculate forces and torques, translate and rotate
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-		if(i<50000){
-        	leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
-		}
+        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, mass, K, dT, n, sumvx, sumvy, sumvz, l, i);
         lfOrient(ex,ey,ez,ux,uy,uz,gx,gy,gz,x,y,z,I,K,dT,n,l,i);
         bCond(x, y, z, l, n);
-        //rescale(vx,vy,vz,ux,uy,uz,1.7,kB,n);
-        //writeXYZ(x,y,z,n);
-        E=K+V; //in scaled units
-        temp=2*K/(5*n*kB); //in kelvin kg*m^2/s^2 -15*-6^2/-3^2  /-21
+		
+		//Calculate total energy
+        E=K+V;
+	
+		//Calculate temperature
+        temp=2*K/(5*n*kB); 
 
         if(i%10==0 || i==2){
             cout << "Loop# " << i << endl;
@@ -736,20 +719,9 @@ int main(int argc, char** argv) {
             cout << "P: " << P << endl << endl;
 
             writeEnergy(V,K,E,i);
-            // if(E>0){
-            //      largeForce(x,y,z,fx,fy,fz,E,n);
-            // }
          }
          writeVectors(x,y,z,ex,ey,ez,i,n);
      }
-
-    double exAvg, eyAvg, ezAvg;
-    for(int i=0; i<n; i++){
-        exAvg=exAvg+ex[i];
-        eyAvg=eyAvg+ey[i];
-        ezAvg=ezAvg+ez[i];
-    }
-    exAvg=exAvg/n; eyAvg=eyAvg/n; ezAvg=ezAvg/n;
-	cout<<"(exAvg,eyAvg,ezAvg)=("<<exAvg<<","<<eyAvg<<","<<ezAvg<<")"<<endl;
+	orientationInfo(ex,ey,ez,n);
     pairCor(x,y,z,n,l);
 }
