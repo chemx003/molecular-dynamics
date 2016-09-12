@@ -126,7 +126,14 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 		//Advance orientations 1 timestep
 		ex[i]=ex[i]+dt*ux[i];
         ey[i]=ey[i]+dt*uy[i];
-        ez[i]=ez[i]+dt*uz[i];	
+        ez[i]=ez[i]+dt*uz[i];
+
+		/*double mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
+
+        ex[i]=ex[i]/mag;
+        ey[i]=ey[i]/mag;
+        ez[i]=ez[i]/mag;*/
+	
 	}
 }
 
@@ -603,7 +610,7 @@ void orientMag(double ex[], double ey[], double ez[], int n){
 		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
 		
 		//print to terminal if mag>1
-		if(mag>1){
+		if(mag>1.001){
 			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
 		}		
 	}
@@ -637,7 +644,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=10;//10*pow(10,3); //Number of time steps
+    int tau=2;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -663,7 +670,7 @@ int main(int argc, char** argv) {
     double sigE=3.0;
 	int rand=1;
 	
-	/*Initialize and reinitialize until the teperature is acceptable*/
+	/*Initialize and reinitialize until the temperature is acceptable*/
     do {
         srand(time(NULL));
         temp=1.7;
@@ -677,7 +684,6 @@ int main(int argc, char** argv) {
 				 K, dT, n, sumvx, sumvy, sumvz, l, 1);
         bCond(x, y, z, l, n);
         temp=2*K/(5*n*kB);
-        cout<<temp<<endl;
         rand++;
     } while(temp>300);
 
