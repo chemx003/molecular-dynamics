@@ -88,6 +88,7 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 		int n, double I){
 	
 	double lm;
+	double dot;
 
     for(int i=0; i<n; i++){
 		
@@ -110,10 +111,13 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 		//Calculate lagrange multiplier to constrain length
 		lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
 		
+		//dot product
+		dot=gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i];
+			
 		//Take perpendicular component of the gorque
-		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
-		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
-		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
+		gx[i]=gx[i]-(dot)*ex[i];
+		gy[i]=gy[i]-(dot)*ey[i];
+		gz[i]=gz[i]-(dot)*ez[i];
 
 		//Advance angular velocities 1/2 timestep
         ux[i]=ux[i]+0.5*dt*(gx[i]/I)+2*lm*ex[i];
@@ -149,7 +153,7 @@ void gb(double x[], double y[], double z[], double fx[],
     double kappa=sigmaE/sigmaS, kappaPrime=epsilonE/epsilonS;
     double chi=(pow(kappa,2.0)-1.0)/(pow(kappa,2.0)+1.0);
     double chiPrime=(pow(kappaPrime,1.0/mu)-1.0)/(pow(kappaPrime,1.0/mu)+1.0);
-    double rc=3.25*sigmaS, rc2=rc*rc; //cuttoff
+    double rc=3.80*sigmaS, rc2=rc*rc; //cuttoff
 
 	//Calculated quantities
 	double dx, dy, dz;
@@ -271,11 +275,11 @@ void gb(double x[], double y[], double z[], double fx[],
                 dgpz1=-(chiPrime/2)*((dz/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ez[j]
                         *(dotDByChip2+dotSByChip2));
 
-                dgpx2=-(chiPrime/2)*((dx/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ex[j]
+                dgpx2=-(chiPrime/2)*((dx/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ex[i]
                         *(dotDByChip2+dotSByChip2));
-                dgpy2=-(chiPrime/2)*((dy/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ey[j]
+                dgpy2=-(chiPrime/2)*((dy/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ey[i]
                         *(dotDByChip2+dotSByChip2));
-                dgpz2=-(chiPrime/2)*((dz/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ez[j]
+                dgpz2=-(chiPrime/2)*((dz/r)*(2*dotSByChip+2*dotDByChip)+chiPrime*ez[i]
                         *(dotDByChip2+dotSByChip2));
 
                 //derivatives of R with respect to orientations
@@ -380,9 +384,9 @@ void init(double x[], double y[], double z[], double vx[],
         m[i]=mass;
 		
 		//Assign random orientation to each molecule
-        ex[i]=dRand(0,1);
-        ey[i]=dRand(0,1);
-        ez[i]=dRand(0,1);
+        ex[i]=1.0;//dRand(0,1);
+        ey[i]=1.0;//dRand(0,1);
+        ez[i]=1.0;//dRand(0,1);
 		
 		//Make orientation vector unit length
         mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
@@ -545,6 +549,9 @@ void leapfrog(double x[], double y[], double z[], double vx[],
 	//reset quantities
     K=0; sumvx=0; sumvy=0; sumvz=0;
 
+	//dot product
+	double dot;
+	
     for(int i=0; i<n; i++){
 
 		//save old velocities for energy calculation
@@ -568,18 +575,21 @@ void leapfrog(double x[], double y[], double z[], double vx[],
 
 		//Calculate lagrange multiplier to constrain length
         lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+
+		//dot product
+		dot=gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i];
 		
 		//Save old velocities for energy calculation
         uxi=ux[i];
         uyi=uy[i];
         uzi=uz[i];
-		
+	
 		//Take perpendicular component of the gorque
-		gx[i]=gx[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ex[i];
-		gy[i]=gy[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ey[i];
-		gz[i]=gz[i]-(gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i])*ez[i];
+		gx[i]=gx[i]-(dot)*ex[i];
+		gy[i]=gy[i]-(dot)*ey[i];
+		gz[i]=gz[i]-(dot)*ez[i];
 		
-		//Advance angular velocities
+		//Advance bond vector derivatives
         ux[i]=ux[i]+dt*(gx[i]/I)+lm*ex[i];
         uy[i]=uy[i]+dt*(gy[i]/I)+lm*ey[i];
         uz[i]=uz[i]+dt*(gz[i]/I)+lm*ez[i];
@@ -610,9 +620,9 @@ void orientMag(double ex[], double ey[], double ez[], int n){
 		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
 		
 		//print to terminal if mag>1
-		if(mag>1.001){
+		if(mag>1.01){
 			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
-		}		
+		}
 	}
 }
 
@@ -644,11 +654,11 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=2;//10*pow(10,3); //Number of time steps
+    int tau=3000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
-    double mass=1;
+    double mass=1.0;
     //Storage
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
@@ -665,10 +675,11 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-    double I=1.0;
+    double I=4.0;
 
     double sigE=3.0;
 	int rand=1;
+	cout.precision(10);
 	
 	/*Initialize and reinitialize until the temperature is acceptable*/
     do {
@@ -708,7 +719,8 @@ int main(int argc, char** argv) {
             cout << "E: " << E << endl;
             cout << "T: " << temp << endl;
             cout << "P: " << P << endl << endl;
-
+			
+			orientMag(ex,ey,ez,n);
             writeEnergy(V,K,E,i);
          }
          writeVectors(x,y,z,ex,ey,ez,i,n);
