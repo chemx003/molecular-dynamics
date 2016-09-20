@@ -109,7 +109,7 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 	for(int i=0; i<n; i++){
 
 		//Calculate lagrange multiplier to constrain length
-		lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+		lm=-2.0*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
 		
 		//dot product
 		dot=gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i];
@@ -119,10 +119,10 @@ void halfstep(double x[], double y[], double z[], double vx[], double vy[],
 		gy[i]=gy[i]-(dot)*ey[i];
 		gz[i]=gz[i]-(dot)*ez[i];
 
-		//Advance angular velocities 1/2 timestep
-        ux[i]=ux[i]+0.5*dt*(gx[i]/I)+2*lm*ex[i];
-        uy[i]=uy[i]+0.5*dt*(gy[i]/I)+2*lm*ey[i];
-        uz[i]=uz[i]+0.5*dt*(gz[i]/I)+2*lm*ez[i];	
+		/*Advance angular velocities 1/2 timestep.*/
+        ux[i]=ux[i]+0.5*dt*(gx[i]/I)+0.5*lm*ex[i];
+        uy[i]=uy[i]+0.5*dt*(gy[i]/I)+0.5*lm*ey[i];
+        uz[i]=uz[i]+0.5*dt*(gz[i]/I)+0.5*lm*ez[i];	
 	}
 
 	for(int i=0; i<n; i++){
@@ -235,8 +235,10 @@ void gb(double x[], double y[], double z[], double fx[],
 
                 R=(r-distF+sigmaS)/sigmaS;
                 R_1=1.0/R;
-                R_6=R_1*R_1*R_1*R_1*R_1*R_1;    R_12=R_6*R_6;
-                R_7=R_6*R_1;                    R_13=R_12*R_1;
+                R_6=R_1*R_1*R_1*R_1*R_1*R_1;
+                R_7=R_6*R_1;                
+				R_12=R_6*R_6;
+				R_13=R_12*R_1;
 
                 //derivatives of g and gPrime wrt separation
                 dgx=-(chi/r2)*(dotSByChi*(ex[i]+ex[j])+dotDByChi*(ex[i]-ex[j]))
@@ -466,6 +468,123 @@ void init(double x[], double y[], double z[], double vx[],
     }
 }
 
+/*Places particles on a cubic lattice with random deviations from 
+lattice sites, random orientations, velocities, etc. according to 
+specified temperature THIS INITIALIZES ACCORDING TO VERLET INTEGRATION
+ALGORITHM*/
+void initVerlet(double x[], double y[], double z[], double vx[],
+        double vy[], double vz[], double ux[], double uy[], double uz[],
+        double ex[], double ey[], double ez[],
+        double m[], double mass, double I, double l, double dt, double temp,
+        double kB, int n){
+
+    double sumvx=0.0, sumvy=0.0, sumvz=0.0; //used to set lin mtm = 0
+    double sumux=0.0, sumuy=0.0, sumuz=0.0;
+    double sumx=0.0, sumy=0.0, sumz=0.0; // for debugging get rid of later
+    double sumv2x=0.0, sumv2y=0.0, sumv2z=0.0; //set kinetic energy
+    double sumu2x=0.0, sumu2y=0.0, sumu2z=0.0;
+    double mag;//unit vector magnitude
+	int N, p; double a;
+	double fsvx, fsvy, fsvz, fsux, fsuy, fsuz;
+	double tvx[n], tvy[n], tvz[n], tux[n], tuy[n], tuz[n];
+
+    for(int i=0; i<n; i++){
+
+        m[i]=mass;
+		
+		//Assign random orientation to each molecule
+        ex[i]=1.0;//dRand(0,1);
+        ey[i]=1.0;//dRand(0,1);
+        ez[i]=1.0;//dRand(0,1);
+		
+		//Make orientation vector unit length
+        mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i], 0.5);
+        ex[i]=ex[i]/mag;
+        ey[i]=ey[i]/mag;
+        ez[i]=ez[i]/mag;
+    }
+
+    N=ceil(pow(n,1.0/3.0)); //Third root of n to find # of particles in a direction
+    a=l/N; //spacing
+
+    p=0; //number of particles placed
+
+    for(int i=0; i<N; i++){
+        for(int j=0; j<N; j++){
+            for(int k=0; k<N; k++){
+                if(p<n){
+					
+					//place particles on lattice sites with random deviations
+                    x[p]=(i+0.5+dRand(-0.1,0.1))*a;
+                    y[p]=(j+0.5+dRand(-0.1,0.1))*a;
+                    z[p]=(k+0.5+dRand(-0.1,0.1))*a;
+					
+					//assign random velocities and ang. velocities
+                    tvx[p]=dRand(-0.5,0.5);
+                    tvy[p]=dRand(-0.5,0.5);
+                    tvz[p]=dRand(-0.5,0.5);
+
+                    tux[p]=dRand(-0.5,0.5);
+                    tuy[p]=dRand(-0.5,0.5);
+                    tuz[p]=dRand(-0.5,0.5);
+					
+					//Sum velocities and squares for energy and mtm
+                    sumvx=sumvx+vx[p];
+                    sumvy=sumvy+vy[p];
+                    sumvz=sumvz+vz[p];
+
+                    sumv2x=sumv2x+pow(vx[p],2);
+                    sumv2y=sumv2y+pow(vy[p],2);
+                    sumv2z=sumv2z+pow(vz[p],2);
+
+                    sumu2x=sumu2x+pow(ux[p],2);
+                    sumu2y=sumu2y+pow(uy[p],2);
+                    sumu2z=sumu2z+pow(uz[p],2);
+                }
+                p++;
+            }
+        }
+    }
+	
+	//cm velocity of system
+    sumvx=sumvx/n; sumvy=sumvy/n; sumvz=sumvz/n;
+
+	//mean squared velocities
+    sumv2x=sumv2x/n; sumv2y=sumv2y/n; sumv2z=sumv2z/n;
+    sumu2x=sumu2x/n; sumu2y=sumu2y/n; sumu2z=sumu2z/n;
+
+	//calculate scaling factors to set correct temperature
+    fsvx=sqrt(kB*temp/sumv2x);
+    fsvy=sqrt(kB*temp/sumv2y);
+    fsvz=sqrt(kB*temp/sumv2z);
+
+    fsux=sqrt(kB*temp/sumu2x);
+    fsuy=sqrt(kB*temp/sumu2y);
+    fsuz=sqrt(kB*temp/sumu2z);
+
+    for(int i=0; i<n; i++){
+
+		//scale velocites and ang. velocities
+        tvx[i]=(vx[i]-sumvx)*fsvx;
+        tvy[i]=(vy[i]-sumvy)*fsvy;
+        tvz[i]=(vz[i]-sumvz)*fsvz;
+
+        tux[i]=(ux[i])*fsux;
+        tuy[i]=(uy[i])*fsuy;
+        tuz[i]=(uz[i])*fsuz;
+
+		vx[i]=x[i]-dt*tvx[i];
+		vy[i]=y[i]-dt*tvy[i];
+		vz[i]=z[i]-dt*tvz[i];
+		
+		//I feel like there might be some problems with
+		//this not being unit length but we'll see
+		ux[i]=ex[i]-dt*tux[i];
+		uy[i]=ey[i]-dt*tuy[i];
+		uz[i]=ez[i]-dt*tuz[i];
+    }
+}
+
 /*Calculates average orientation and scalar order parameter once
 I implement that*/
 void orientationInfo(double ex[], double ey[], double ez[], int n){
@@ -574,12 +693,13 @@ void leapfrog(double x[], double y[], double z[], double vx[],
         vzi=0.5*(vzi+vz[i]);
 
 		//Calculate lagrange multiplier to constrain length
-        lm=-2*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
+        lm=-2.0*(ux[i]*ex[i]+uy[i]*ey[i]+uz[i]*ez[i]);
 
 		//dot product
 		dot=gx[i]*ex[i]+gy[i]*ey[i]+gz[i]*ez[i];
 		
-		//Save old velocities for energy calculation
+		/*Save old velocities for energy calculation
+		actually need to calculate the average velocity*/
         uxi=ux[i];
         uyi=uy[i];
         uzi=uz[i];
@@ -620,9 +740,69 @@ void orientMag(double ex[], double ey[], double ez[], int n){
 		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
 		
 		//print to terminal if mag>1
-		if(mag>1.01){
+		if(mag>1.0000001){
 			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
 		}
+	}
+}
+
+/*Integrates the equations of motion using the verlet algorithm
+instead in this case let vx, vy, .. and ux, uy, .. be the old velocities*/
+void verlet(double x[], double y[], double z[], double vx[], double vy[],
+			double vz[], double fx[], double fy[], double fz[], 
+			double ex[], double ey[], double ez[], double ux[],
+			double uy[], double uz[], double gx[], double gy[],
+			double gz[], double mass, double I, double dT, double& K,
+			 int n){
+
+	double xNEW, yNEW, zNEW, exNEW, eyNEW, ezNEW;
+	double vxi, vyi, vzi, uxi, uyi, uzi;
+	double lm, dot1, dot2;
+
+	for(int i=0; i<n; i++){
+		
+		xNEW=2*x[i]-vx[i]+dT*dT*fx[i]/mass;
+		yNEW=2*y[i]-vy[i]+dT*dT*fy[i]/mass;
+		zNEW=2*z[i]-vz[i]+dT*dT*fz[i]/mass;
+
+		vx[i]=x[i];
+		vy[i]=y[i];
+		vz[i]=z[i];
+
+		x[i]=xNEW;
+		y[i]=yNEW;
+		z[i]=zNEW;
+
+		vxi=(x[i]-vx[i])/(2*dT)
+		vyi=(y[i]-vy[i])/(2*dT)
+		vzi=(z[i]-vz[i])/(2*dT)
+
+		exNEW=2*ex[i]-ux[i]+dT*dT*gx[i]/I;
+		eyNEW=2*ey[i]-uy[i]+dT*dT*gy[i]/I;
+		ezNEW=2*ez[i]-uz[i]+dT*dT*gz[i]/I;
+
+		dot1=ex[i]*exNEW+ey[i]*eyNEW+ez[i]*ezNEW;
+		dot2=exNEW*exNEW+eyNEW*eyNEW+ezNEW*ezNEW;
+
+		lm=-dot1+pow(dot1*dot1-dot2+1,0.5);
+
+		exNEW=exNEW+ex[i]*lm;
+		eyNEW=eyNEW+ey[i]*lm;
+		ezNEW=ezNEW+ez[i]*lm;
+
+		ux[i]=ex[i];
+		uy[i]=ey[i];
+		uz[i]=ez[i];
+
+		ex[i]=exNEW;
+		ey[i]=eyNEW;
+		ez[i]=ezNEW;
+		
+		uxi=(ex[i]-ux[i])/(2*dT);
+		uyi=(ey[i]-uy[i])/(2*dT);
+		uzi=(ez[i]-uz[i])/(2*dT);
+
+		K=K+0.5*mass*(vxi*vxi+vyi*vyi*+vzi*vzi)+0.5*I*(uxi*uxi+uyi*uyi+uzi*uzi);
 	}
 }
 
@@ -654,7 +834,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=3000;//10*pow(10,3); //Number of time steps
+    int tau=2000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -675,11 +855,11 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-    double I=4.0;
+   `double I=1.0;
 
     double sigE=3.0;
 	int rand=1;
-	cout.precision(10);
+	cout.precision(17);
 	
 	/*Initialize and reinitialize until the temperature is acceptable*/
     do {
@@ -687,7 +867,7 @@ int main(int argc, char** argv) {
         temp=1.7;
         init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
-        halfstep(x, y, z, vx, vy, vz,fx, fy, fz,ex,ey,ez,ux,uy,uz,gx,gy,gz, mass, dT, n, I);
+        halfstep(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, dT, n, I);
 		orientMag(ex,ey,ez,n);
         bCond(x, y, z, l, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);
@@ -703,7 +883,7 @@ int main(int argc, char** argv) {
 		//Calculate forces and torques, translate and rotate
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
         leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
-				 K, dT, n, sumvx, sumvy, sumvz, l, 1); 
+				 K, dT, n, sumvx, sumvy, sumvz, l, i); 
         bCond(x, y, z, l, n);
 		
 		//Calculate total energy
