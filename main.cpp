@@ -533,13 +533,13 @@ void initVerlet(double x[], double y[], double z[], double vx[],
                     sumvy=sumvy+vy[p];
                     sumvz=sumvz+vz[p];
 
-                    sumv2x=sumv2x+pow(vx[p],2);
-                    sumv2y=sumv2y+pow(vy[p],2);
-                    sumv2z=sumv2z+pow(vz[p],2);
+                    sumv2x=sumv2x+pow(tvx[p],2);
+                    sumv2y=sumv2y+pow(tvy[p],2);
+                    sumv2z=sumv2z+pow(tvz[p],2);
 
-                    sumu2x=sumu2x+pow(ux[p],2);
-                    sumu2y=sumu2y+pow(uy[p],2);
-                    sumu2z=sumu2z+pow(uz[p],2);
+                    sumu2x=sumu2x+pow(tux[p],2);
+                    sumu2y=sumu2y+pow(tuy[p],2);
+                    sumu2z=sumu2z+pow(tuz[p],2);
                 }
                 p++;
             }
@@ -569,9 +569,9 @@ void initVerlet(double x[], double y[], double z[], double vx[],
         tvy[i]=(vy[i]-sumvy)*fsvy;
         tvz[i]=(vz[i]-sumvz)*fsvz;
 
-        tux[i]=(ux[i])*fsux;
-        tuy[i]=(uy[i])*fsuy;
-        tuz[i]=(uz[i])*fsuz;
+        tux[i]=(tux[i])*fsux;
+        tuy[i]=(tuy[i])*fsuy;
+        tuz[i]=(tuz[i])*fsuz;
 
 		vx[i]=x[i]-dt*tvx[i];
 		vy[i]=y[i]-dt*tvy[i];
@@ -740,7 +740,7 @@ void orientMag(double ex[], double ey[], double ez[], int n){
 		mag=ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i];
 		
 		//print to terminal if mag>1
-		if(mag>1.0000001){
+		if(mag>1.0000001 || isnan(mag)==1){
 			cout<<"warning i: "<<i<<" eMag: "<< mag <<endl;
 		}
 	}
@@ -773,9 +773,9 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 		y[i]=yNEW;
 		z[i]=zNEW;
 
-		vxi=(x[i]-vx[i])/(2*dT)
-		vyi=(y[i]-vy[i])/(2*dT)
-		vzi=(z[i]-vz[i])/(2*dT)
+		vxi=(x[i]-vx[i])/(2*dT);
+		vyi=(y[i]-vy[i])/(2*dT);
+		vzi=(z[i]-vz[i])/(2*dT);
 
 		exNEW=2*ex[i]-ux[i]+dT*dT*gx[i]/I;
 		eyNEW=2*ey[i]-uy[i]+dT*dT*gy[i]/I;
@@ -786,6 +786,8 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 
 		lm=-dot1+pow(dot1*dot1-dot2+1,0.5);
 
+		//cout << "(ux,exNEW,dot1,dot2,lm)=("<<ux[i]<<","<<exNEW<<","<<dot1<<","<<dot2<<","<<lm<<")" << endl;
+		
 		exNEW=exNEW+ex[i]*lm;
 		eyNEW=eyNEW+ey[i]*lm;
 		ezNEW=ezNEW+ez[i]*lm;
@@ -834,7 +836,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=2000;//10*pow(10,3); //Number of time steps
+    int tau=4000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -855,7 +857,7 @@ int main(int argc, char** argv) {
     //pressure
     double P;
     //moment of inertia
-   `double I=1.0;
+    double I=1.0;
 
     double sigE=3.0;
 	int rand=1;
@@ -865,14 +867,16 @@ int main(int argc, char** argv) {
     do {
         srand(time(NULL));
         temp=1.7;
-        init(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
+        initVerlet(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
-        halfstep(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, dT, n, I);
+        //halfstep(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, dT, n, I);
+		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
 		orientMag(ex,ey,ez,n);
         bCond(x, y, z, l, n);
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
-				 K, dT, n, sumvx, sumvy, sumvz, l, 1);
+        /*leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
+				 K, dT, n, sumvx, sumvy, sumvz, l, 1);*/
+		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
         bCond(x, y, z, l, n);
         temp=2*K/(5*n*kB);
         rand++;
@@ -882,8 +886,9 @@ int main(int argc, char** argv) {
 
 		//Calculate forces and torques, translate and rotate
         gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-        leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
-				 K, dT, n, sumvx, sumvy, sumvz, l, i); 
+        /*leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
+				 K, dT, n, sumvx, sumvy, sumvz, l, i);*/ 
+		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
         bCond(x, y, z, l, n);
 		
 		//Calculate total energy
