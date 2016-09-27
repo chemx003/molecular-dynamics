@@ -334,10 +334,15 @@ void gb(double x[], double y[], double z[], double fx[],
                 fz[i]=fz[i]+fzi; fz[j]=fz[j]-fzi;
 
 				//Summing torques
-                gx[i]=gx[i]-gx1; gx[j]=gx[j]-gx2;
-                gy[i]=gy[i]-gy1; gy[j]=gy[j]-gy2;
-                gz[i]=gz[i]-gz1; gz[j]=gz[j]-gz2;
+                gx[i]=gx[i]-gx1;
+                gy[i]=gy[i]-gy1;	
+                gz[i]=gz[i]-gz1; 
 				
+				gx[j]=gx[j]-gx2;
+				gy[j]=gy[j]-gy2;
+				gz[j]=gz[j]-gz2;
+
+
 				//check if particles are over lapping or gorques are NaN
            	    if(r<=0.8 || isnan(gx1)==1 || isnan(gx2)==1){
 						cout<<"r="<<r<<"    i="<<i<<"    j="<<j<<endl;
@@ -759,6 +764,8 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 	double vxi, vyi, vzi, uxi, uyi, uzi;
 	double lm, dot1, dot2;
 
+	K=0;	
+
 	for(int i=0; i<n; i++){
 		
 		xNEW=2*x[i]-vx[i]+dT*dT*fx[i]/mass;
@@ -785,8 +792,10 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 		dot2=exNEW*exNEW+eyNEW*eyNEW+ezNEW*ezNEW;
 
 		lm=-dot1+pow(dot1*dot1-dot2+1,0.5);
-
-		//cout << "(ux,exNEW,dot1,dot2,lm)=("<<ux[i]<<","<<exNEW<<","<<dot1<<","<<dot2<<","<<lm<<")" << endl;
+		
+		if(isnan(lm)==1){
+			double dot12=dot1*dot1;
+			cout << "(exNEW,dot1**2,dot2,lm)=("<<exNEW<<","<<dot12<<","<<dot2<<","<<lm<<")" << endl;}
 		
 		exNEW=exNEW+ex[i]*lm;
 		eyNEW=eyNEW+ey[i]*lm;
@@ -836,7 +845,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=256;
     //Time information
-    int tau=4000;//10*pow(10,3); //Number of time steps
+    int tau=1400;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
