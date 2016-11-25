@@ -1,9 +1,3 @@
-/*
- * File:   main.cpp,
- * Author: Bryan
- *
- */
-
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
@@ -12,6 +6,138 @@
 #include <sstream>
 
 using namespace std;
+
+//functions
+void bCond(double x[], double y[], double z[], double l, int n);
+
+double dRand(double dMin, double dMax);
+
+double errorFile(double x[], double y[], double z[], double ex[], double ey[], double ez[], double gx1, double gy1, 
+				double gz1, double gx2, double gy2, double gz2, double dpot_dci, double dpot_dcij, double deps_dci, 
+				double deps_dcij, double eps1, double e1Mag, double e2Mag, double rij_mag, int i, int j);
+
+void halfstep(double x[], double y[], double z[], double vx[], double vy[], double vz[], double fx[], double fy[], 
+		double fz[], double ex[], double ey[], double ez[], double ux[], double uy[], double uz[],double gx[], 
+		double gy[], double gz[], double mass, double dt, int n, double I);
+
+void gb(double x[], double y[], double z[], double fx[], double fy[], double fz[], double ex[], double ey[], 
+		double ez[], double gx[], double gy[], double gz[], double& V, double l,double& P, double kB, double T, 
+		int n, double sigE, int loop);
+
+void gbTest(double x[], double y[], double z[], double fx[], double fy[], double fz[], double ex[], double ey[], 
+		double ez[], double gx[], double gy[], double gz[], double& V, double l, double& P, double kB, double T, 
+		int n, double sigE, int loop);
+
+void init(double x[], double y[], double z[], double vx[], double vy[], double vz[], double ux[], double uy[], 
+		double uz[], double ex[], double ey[], double ez[], double m[], double mass, double I, double l, double dt, 
+		double temp, double kB, int n);
+
+void initVerlet(double x[], double y[], double z[], double vx[], double vy[], double vz[], double ux[], double uy[], 
+		double uz[], double ex[], double ey[], double ez[], double m[], double mass, double I, double l, double dt, 
+		double temp, double kB, int n);
+
+void orientationInfo(double ex[], double ey[], double ez[], int n);
+
+double pairCor(double x[], double y[], double z[], int n, double l);
+
+void leapfrog(double x[], double y[], double z[], double vx[], double vy[], double vz[], double fx[], double fy[], 
+		double fz[], double ex[], double ey[], double ez[], double ux[], double uy[], double uz[], double gx[], 
+		double gy[], double gz[], double mass,double I, double& K, double dt, int n, double& sumvx, double& sumvy, 
+		double& sumvz, double l, int loop);
+
+void orientMag(double ex[], double ey[], double ez[], int n);
+
+void verlet(double x[], double y[], double z[], double vx[], double vy[], double vz[], double fx[], double fy[], 
+		double fz[], double ex[], double ey[], double ez[], double ux[], double uy[], double uz[], double gx[], 
+		double gy[], double gz[], double mass, double I, double dT, double& K,int n);
+
+void writeEnergy(double V, double K, double E, int time);
+
+void writeVectors(double x[], double y[], double z[], double ex[], double ey[], double ez[], double i, int n);
+
+//main function
+int main(int argc, char** argv) {
+    //Number of particles
+    int n=256;
+    //Time information
+    int tau=3000;//10*pow(10,3); //Number of time steps
+    double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
+    double T=tau*dT; //Total time
+    //Particle info
+    double mass=1.0;
+    //Storage
+    double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
+            uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
+    //Simulation box length
+    double l=14.92472;
+    //Kinetic/Potential/Total Energy;
+    double K,V; double E;
+    //Temperature
+    double temp=1.7;
+    //Boltzmann Cons
+    double kB=0.0025;
+    //momentum
+    double sumvx, sumvy, sumvz;
+    //pressure
+    double P;
+    //moment of inertia
+    double I=1.0;
+
+    double sigE=3.0;
+	int rand=1;
+	cout.precision(17);
+	
+	/*Initialize and reinitialize until the temperature is acceptable*/
+    do {
+        srand(time(NULL));
+        temp=1.7;
+        initVerlet(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
+        gbTest(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
+        //halfstep(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, dT, n, I);
+		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
+		orientMag(ex,ey,ez,n);
+        bCond(x, y, z, l, n);
+        gbTest(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);
+        /*leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
+				 K, dT, n, sumvx, sumvy, sumvz, l, 1);*/
+		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
+        bCond(x, y, z, l, n);
+        temp=2*K/(5*n*kB);
+        rand++;
+    } while(temp>300);
+
+    for(int i=2; i<tau; i++){
+
+		//Calculate forces and torques, translate and rotate
+        gbTest(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
+        /*leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
+				 K, dT, n, sumvx, sumvy, sumvz, l, i);*/ 
+		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
+        bCond(x, y, z, l, n);
+		
+		//Calculate total energy
+        E=K+V;
+	
+		//Calculate temperature
+        temp=2*K/(5*n*kB); 
+
+        if(i%10==0 || i==2){
+            cout << "Loop# " << i << endl;
+            cout << "V: " << V << endl;
+            cout << "K: " << K << endl;
+            cout << "E: " << E << endl;
+            cout << "T: " << temp << endl;
+            cout << "P: " << P << endl << endl;
+			
+			orientMag(ex,ey,ez,n);
+            writeEnergy(V,K,E,i);
+         }
+         writeVectors(x,y,z,ex,ey,ez,i,n);
+     }
+	orientationInfo(ex,ey,ez,n);
+    pairCor(x,y,z,n,l);
+}
+
 
 /*Implementation of periodic boundary conditions. Updates positions
   after particle positions are incremented each timestep*/
@@ -77,6 +203,31 @@ double dRand(double dMin, double dMax){
 
     double d = (double)rand()/RAND_MAX;
     return dMin + d*(dMax-dMin);
+}
+
+/*Records errors in a text file*/
+double errorFile(double x[], double y[], double z[], double ex[],
+				double ey[], double ez[], double gx1,
+				double gy1, double gz1, double gx2, double gy2, 
+				double gz2, double dpot_dci, double dpot_dcij, 
+				double deps_dci, double deps_dcij, double eps1, 
+				double e1Mag, double e2Mag, double rij_mag, int i, int j){
+
+	ofstream o;
+	o.open("error-file.txt", ios::app);
+
+	o<<"r="<<rij_mag<<"    i="<<i<<"    j="<<j<<endl;
+    o<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
+    o<<"r2(" << x[j] <<"," << y[j] << ", " << z[j] << ")"<<endl;
+   	o<<"e1(" << ex[i] <<","<< ey[i] <<", " << ez[i] << ") MAG: "<<e1Mag<<endl;
+    o<<"e2(" << ex[j] <<","<< ey[j] << ", " << ez[j]<< ") MAG: "<<e2Mag<<endl;
+    o<<"g1("<< gx1 <<"," << gy1 << ", " << gz1 << ")"<<endl;
+    o<<"g2("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl;
+	o<<"dpot_dci: " << dpot_dci << " dpot_dcij: " << dpot_dcij<< endl;
+	o<<"deps_dci: " << deps_dci << " deps_dcij: " << dpot_dcij<< endl;
+	o<<"eps1: " << eps1 << endl;
+
+
 }
 
 /*Increments the velocity and angular velocity half a timestep and the 
@@ -368,6 +519,158 @@ void gb(double x[], double y[], double z[], double fx[],
 	P=P/(l*l*l*pow(10,-18));
 }
 
+void gbTest(double x[], double y[], double z[], double fx[],
+        double fy[], double fz[], double ex[], double ey[], double ez[],
+        double gx[], double gy[], double gz[], double& V, double l,
+        double& P, double kB, double T, int n, double sigE, int loop){
+
+	double mu=2.0, nu=1.0;
+	double kappa=3.0, xappa=5.0;
+
+	double chi=(pow(kappa,2)-1.0)/(pow(kappa,2)+1.0);
+	double xhi=(pow(xappa,1.0/mu)-1.0)/(pow(xappa,1/mu)+1.0);
+
+	double rc=3.25;
+
+	double dx,dy,dz;
+	double rij_sq,rij_mag;
+	double dx_hat,dy_hat,dz_hat;
+	double ci,cj,cij;
+	double cp, cm;
+	double cpchi, cmchi, sigma;
+	double eps1, cpxhi, cmxhi,eps2,epsilon;
+	double rho, rho6, rho12, rhoterm,drhoterm,pot;
+	double prefac, dsig_dci, dsig_dcj, dsig_dcij;
+	double deps_dci, deps_dcj, deps_dcij;
+	double dpot_drij, dpot_dci, dpot_dcj, dpot_dcij;
+	double fxi, fyi, fzi;
+	double g1x,g1y,g1z,g2x,g2y,g2z;
+	double e1Mag, e2Mag;
+
+	//Resetting quantities
+    for(int i=0; i<n; i++){
+        fx[i]=0; gx[i]=0;
+        fy[i]=0; gy[i]=0;
+        fz[i]=0; gz[i]=0;
+    }
+	V=0;
+    P=0;
+
+	for(int i=0; i<n-1; i++){
+		for(int j=i+1; j<n; j++){
+			dx=x[i]-x[j];
+			dy=y[i]-y[j];
+			dz=z[i]-z[j];
+
+			rij_sq=dx*dx+dy*dy+dz*dz;
+			rij_mag=pow(rij_sq,0.5);
+
+			dx_hat=dx/rij_mag;
+			dy_hat=dy/rij_mag;
+			dz_hat=dz/rij_mag;
+
+			e1Mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i],0.5);
+			e2Mag=pow(ex[j]*ex[i]+ey[j]*ey[j]+ez[j]*ez[j],0.5);
+			
+			if(rij_mag<rc){
+			ci=dx_hat*ex[i]+dy_hat*ey[i]+dz_hat*ez[i];
+			cj=dx_hat*ex[j]+dy_hat*ey[j]+dz_hat*ez[j];
+			cij=ex[i]*ex[j]+ey[i]*ey[j]+ez[i]*ez[j];
+
+			cp=ci+cj;
+			cm=ci-cj;
+
+			cpchi=cp/(1.0+chi*cij);
+			cmchi=cm/(1.0-chi*cij);
+			sigma=1.0/pow(1.0-0.5*chi*(cp*cpchi+cm*cmchi),0.5);
+
+			eps1=1.0/pow(1.0-(chi*chi*cij*cij),0.5);
+			cpxhi=cp/(1.0+xhi*cij);
+			cmxhi=cm/(1.0-xhi*cij);
+			eps2=1.0-0.5*xhi*(cp*cpxhi+cm*cmxhi);
+			epsilon=(pow(eps1,nu))*(pow(eps2,mu));
+
+			rho=rij_mag-sigma+1.0;
+			rho6=1.0/pow(rho,6);
+			rho12=rho6*rho6;
+			rhoterm=4.0*(rho12-rho6);
+			drhoterm=-24.0*(2.0*rho12-rho6)/rho;
+			pot=epsilon*rhoterm;
+		
+			prefac=0.5*chi*pow(sigma,3);
+			dsig_dci=prefac*(cpchi+cmchi);
+			dsig_dcj=prefac*(cpchi-cmchi);
+			prefac=prefac*(0.5*chi);
+			dsig_dcij=-prefac*(cpchi*cpchi-cmchi*cmchi);
+
+			prefac=-mu*xhi*pow(eps1,nu)*pow(eps2,mu-1);
+			deps_dci=prefac*(cpxhi+cmxhi);
+			deps_dcj=prefac*(cpxhi-cmxhi);
+			prefac=prefac*(0.5*xhi);
+			deps_dcij=-prefac*(cpxhi*cpxhi-cmxhi*cmxhi);
+			deps_dcij=deps_dcij+nu*chi*chi*pow(eps1,nu+2)*pow(eps2,mu)*cij;
+		
+			dpot_drij=epsilon*drhoterm;
+			dpot_dci=rhoterm*deps_dci-epsilon*drhoterm*dsig_dci;
+			dpot_dcj=rhoterm*deps_dcj-epsilon*drhoterm*dsig_dcj;
+			dpot_dcij=rhoterm*deps_dcij-epsilon*drhoterm*dsig_dcij;
+
+			fxi=-dpot_drij*dx_hat+dpot_dci*(ex[i]-ci*dx_hat)/rij_mag
+				-dpot_dcj*(ex[j]-cj*dx_hat)/rij_mag;
+			fyi=-dpot_drij*dy_hat+dpot_dci*(ey[i]-ci*dy_hat)/rij_mag
+				-dpot_dcj*(ey[j]-cj*dy_hat)/rij_mag;
+			fzi=-dpot_drij*dz_hat+dpot_dci*(ez[i]-ci*dz_hat)/rij_mag
+				-dpot_dcj*(ez[j]-cj*dz_hat)/rij_mag;
+
+			g1x=dpot_dci*dx_hat+dpot_dcij*ex[j];
+			g1y=dpot_dci*dy_hat+dpot_dcij*ey[j];
+			g1z=dpot_dci*dz_hat+dpot_dcij*ez[j];
+
+			g2x=dpot_dcj*dx_hat+dpot_dcij*ex[i];
+			g2y=dpot_dcj*dy_hat+dpot_dcij*ey[i];
+			g2z=dpot_dcj*dz_hat+dpot_dcij*ez[i];
+
+			fx[i]=fx[i]+fxi;
+			fy[i]=fy[i]+fyi;
+			fz[i]=fz[i]+fzi;
+
+			gx[i]=gx[i]-g1x;
+			gy[i]=gy[i]-g1y;
+			gz[i]=gz[i]-g1z;
+
+			gx[j]=gx[j]-g2x;
+			gy[j]=gy[j]-g2y;
+			gz[j]=gz[j]-g2z;
+
+			if(rij_mag<1.0 || isnan(g1x)==1 || isnan(g2x)==1 || abs(e1Mag-1.0)>0.02 || abs(e2Mag-1.0)>0.02){
+						/*cout<<"r="<<rij_mag<<"    i="<<i<<"    j="<<j<<endl;
+                        cout<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
+                        cout<<"r2(" << x[j] <<"," << y[j] << ", " << z[j] << ")"<<endl;
+                        cout<<"e1(" << ex[i] <<","<< ey[i] <<", " << ez[i] << ") MAG: "<<e1Mag<<endl;
+                        cout<<"e2(" << ex[j] <<","<< ey[j] << ", " << ez[j]<< ") MAG: "<<e2Mag<<endl;
+                        cout<<"g1("<< g1x <<"," << g1y << ", " << g1z << ")"<<endl;
+                        cout<<"g2("<< g2x <<"," << g2y << ", " << g2z << ")"<<endl;
+						cout<<"dpot_dci: " << dpot_dci << " dpot_dcij: " << dpot_dcij<< endl;
+						cout<<"deps_dci: " << deps_dci << " deps_dcij: " << dpot_dcij<< endl;
+						cout<<"eps1: " << eps1 << endl;*/
+
+						errorFile(x, y, z, ex, ey, ez, g1x, g1y, g1z, g2x, g2y, g2z, dpot_dci, 
+								dpot_dcij, deps_dci, deps_dcij, eps1, e1Mag, e2Mag, rij_mag, i, j);
+           	    }
+
+			//Calculate potential
+                V=V+pot;
+
+			//Calculate Pressure
+               	P=P+fxi*dx+fyi*dy+fzi*dz;}
+		}
+	}
+
+	//Pressure converted to Pa -should move this
+    P=n*kB*pow(10,-21)*T+P*pow(10,-21)/3;
+	P=P/(l*l*l*pow(10,-18));
+
+}
 /*Places particles on a cubic lattice with random deviations from 
 lattice sites, random orientations, velocities, etc. according to 
 specified temperature*/
@@ -763,6 +1066,7 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 	double xNEW, yNEW, zNEW, exNEW, eyNEW, ezNEW;
 	double vxi, vyi, vzi, uxi, uyi, uzi;
 	double lm, dot1, dot2;
+	double e_mag;
 
 	K=0;	
 
@@ -839,86 +1143,4 @@ void writeVectors(double x[], double y[], double z[],
         o<<x[i]<<"\t"<<y[i]<<"\t"<<z[i]<<"\t"<<ex[i]<<
             "\t"<<ey[i]<<"\t"<<ez[i]<<"\n";
     }
-}
-
-int main(int argc, char** argv) {
-    //Number of particles
-    int n=256;
-    //Time information
-    int tau=1400;//10*pow(10,3); //Number of time steps
-    double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
-    double T=tau*dT; //Total time
-    //Particle info
-    double mass=1.0;
-    //Storage
-    double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
-            uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
-    //Simulation box length
-    double l=14.92472;
-    //Kinetic/Potential/Total Energy;
-    double K,V; double E;
-    //Temperature
-    double temp=1.7;
-    //Boltzmann Cons
-    double kB=0.0025;
-    //momentum
-    double sumvx, sumvy, sumvz;
-    //pressure
-    double P;
-    //moment of inertia
-    double I=1.0;
-
-    double sigE=3.0;
-	int rand=1;
-	cout.precision(17);
-	
-	/*Initialize and reinitialize until the temperature is acceptable*/
-    do {
-        srand(time(NULL));
-        temp=1.7;
-        initVerlet(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
-        //halfstep(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, dT, n, I);
-		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
-		orientMag(ex,ey,ez,n);
-        bCond(x, y, z, l, n);
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 1);
-        /*leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
-				 K, dT, n, sumvx, sumvy, sumvz, l, 1);*/
-		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
-        bCond(x, y, z, l, n);
-        temp=2*K/(5*n*kB);
-        rand++;
-    } while(temp>300);
-
-    for(int i=2; i<tau; i++){
-
-		//Calculate forces and torques, translate and rotate
-        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, i);
-        /*leapfrog(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, I,
-				 K, dT, n, sumvx, sumvy, sumvz, l, i);*/ 
-		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
-        bCond(x, y, z, l, n);
-		
-		//Calculate total energy
-        E=K+V;
-	
-		//Calculate temperature
-        temp=2*K/(5*n*kB); 
-
-        if(i%10==0 || i==2){
-            cout << "Loop# " << i << endl;
-            cout << "V: " << V << endl;
-            cout << "K: " << K << endl;
-            cout << "E: " << E << endl;
-            cout << "T: " << temp << endl;
-            cout << "P: " << P << endl << endl;
-			
-			orientMag(ex,ey,ez,n);
-            writeEnergy(V,K,E,i);
-         }
-         writeVectors(x,y,z,ex,ey,ez,i,n);
-     }
-	orientationInfo(ex,ey,ez,n);
-    pairCor(x,y,z,n,l);
 }

@@ -1,7 +1,6 @@
-*.dat
-/main
-*.data
-*.xyz
-*.swp
-a.out
-*.png
+**/*.dat
+**/*.data
+**/*.xyz
+**/*.swp
+**/a.out
+**/*.png
