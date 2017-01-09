@@ -3,6 +3,7 @@ main: main.cpp
 
 clean:
 	rm *.data
+	rm error-file.txt
 
 anim:
 	gnuplot animation.gp

@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     //Number of particles
     int n=4;
     //Time information
-    int tau=1000;//10*pow(10,3); //Number of time steps
+    int tau=25000;//10*pow(10,3); //Number of time steps
     double dT=0.0015;//pow(10,-4); //Length of time step ** used a smaller step
     double T=tau*dT; //Total time
     //Particle info
@@ -22,13 +22,13 @@ int main(int argc, char** argv) {
     double x[n],y[n],z[n],vx[n],vy[n],vz[n],ex[n],ey[n],ez[n], ux[n], uy[n],
             uz[n],m[n],fx[n],fy[n],fz[n],gx[n],gy[n],gz[n];
     //Simulation box length
-    double l=3.5;
+    double l=5.5;
     //Kinetic/Potential/Total Energy;
     double K,V; double E;
     //Temperature
     double temp=1.5;
     //Boltzmann Cons
-    double kB=0.0025;
+    double kB=1.0;
     //momentum
     double sumvx, sumvy, sumvz;
     //pressure
@@ -42,9 +42,9 @@ int main(int argc, char** argv) {
 	/*Initialize and reinitialize until the temperature is acceptable*/
     do {
         srand(time(NULL));
-        temp=1.7;
+        temp=1.5;
         initVerlet(x, y, z, vx, vy, vz, ux, uy, uz, ex, ey, ez, m, mass, I, l, dT, temp, kB,n);
-        gbTest(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
+        gb(x, y, z, fx, fy, fz, ex, ey, ez, gx, gy, gz, V, l, P, kB, T, n, sigE, 0);
         //halfstep(x, y, z, vx, vy, vz, fx, fy, fz, ex, ey, ez, ux, uy, uz, gx, gy, gz, mass, dT, n, I);
 		verlet(x,y,z,vx,vy,vz,fx,fy,fz,ex,ey,ez,ux,uy,uz,gx,gy,gz,mass,I,dT,K,n);
 		orientMag(ex,ey,ez,n);
@@ -163,7 +163,8 @@ double errorFile(double x[], double y[], double z[], double ex[],
 				double gy1, double gz1, double gx2, double gy2,
 				double gz2, double dpot_dci, double dpot_dcij,
 				double deps_dci, double deps_dcij, double eps1,
-				double e1Mag, double e2Mag, double rij_mag, int i, int j){
+				double e1Mag, double e2Mag, double rij_mag, double rho, double drhoterm,
+				double epsilon, int i, int j){
 
 	ofstream o;
 	o.open("error-file.txt", ios::app);
@@ -176,8 +177,9 @@ double errorFile(double x[], double y[], double z[], double ex[],
     o<<"g1("<< gx1 <<"," << gy1 << ", " << gz1 << ")"<<endl;
     o<<"g2("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl;
 	o<<"dpot_dci: " << dpot_dci << " dpot_dcij: " << dpot_dcij<< endl;
-	o<<"deps_dci: " << deps_dci << " deps_dcij: " << dpot_dcij<< endl;
+	o<<"deps_dci: " << deps_dci << " deps_dcij: " << deps_dcij<< endl;
 	o<<"eps1: " << eps1 << endl;
+	o<<"rho: "<<rho<<" drhoterm: " << drhoterm << " epsilon: " << epsilon << endl << endl;
 
 
 }
@@ -447,17 +449,16 @@ void gb(double x[], double y[], double z[], double fx[],
 
 
 				//check if particles are over lapping or gorques are NaN
-           	    if(r<=0.8 || isnan(gx1)==1 || isnan(gx2)==1){
+				if(r<1.0 || isnan(gx1)==1 || isnan(gx2)==1 || abs(e1Mag-1.0)>0.02 || abs(e2Mag-1.0)>0.02){
 						cout<<"r="<<r<<"    i="<<i<<"    j="<<j<<endl;
                         cout<<"r1(" << x[i] <<"," << y[i] << ", " << z[i] << ")"<<endl;
                         cout<<"r2(" << x[j] <<"," << y[j] << ", " << z[j] << ")"<<endl;
                         cout<<"e1(" << ex[i] <<","<< ey[i] <<", " << ez[i] << ") MAG: "<<e1Mag<<endl;
                         cout<<"e2(" << ex[j] <<","<< ey[j] << ", " << ez[j]<< ") MAG: "<<e2Mag<<endl;
                         cout<<"g1("<< gx1 <<"," << gy1 << ", " << gz1 << ")"<<endl;
-                        cout<<"g2("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl;
-						cout<<"g: "<<g<<" dex1: "<<dex1<<" depx1: "<<depx1<<" eprime: " << ePrime <<endl<<endl;
-           	    }
+                        cout<<"g2("<< gx2 <<"," << gy2 << ", " << gz2 << ")"<<endl; 
 
+           	    }
 				//Calculate potential
                 V=V+4.0*epsilonS*ePn*gPm*R_6*(R_6-1.0);
 
@@ -482,7 +483,7 @@ void gbTest(double x[], double y[], double z[], double fx[],
 	double chi=(pow(kappa,2)-1.0)/(pow(kappa,2)+1.0);
 	double xhi=(pow(xappa,1.0/mu)-1.0)/(pow(xappa,1/mu)+1.0);
 
-	double rc=5.0;
+	double rc=3.0;
 
 	double dx,dy,dz;
 	double rij_sq,rij_mag;
@@ -492,6 +493,7 @@ void gbTest(double x[], double y[], double z[], double fx[],
 	double cpchi, cmchi, sigma;
 	double eps1, cpxhi, cmxhi,eps2,epsilon;
 	double rho, rho6, rho12, rhoterm,drhoterm,pot;
+	double cutterm, dcutterm;
 	double prefac, dsig_dci, dsig_dcj, dsig_dcij;
 	double deps_dci, deps_dcj, deps_dcij;
 	double dpot_drij, dpot_dci, dpot_dcj, dpot_dcij;
@@ -514,6 +516,10 @@ void gbTest(double x[], double y[], double z[], double fx[],
 			dy=y[i]-y[j];
 			dz=z[i]-z[j];
 
+            dx=dx-l*round(dx/l);
+            dy=dy-l*round(dy/l);
+            dz=dz-l*round(dz/l);
+
 			rij_sq=dx*dx+dy*dy+dz*dz;
 			rij_mag=pow(rij_sq,0.5);
 
@@ -522,7 +528,7 @@ void gbTest(double x[], double y[], double z[], double fx[],
 			dz_hat=dz/rij_mag;
 
 			e1Mag=pow(ex[i]*ex[i]+ey[i]*ey[i]+ez[i]*ez[i],0.5);
-			e2Mag=pow(ex[j]*ex[i]+ey[j]*ey[j]+ez[j]*ez[j],0.5);
+			e2Mag=pow(ex[j]*ex[j]+ey[j]*ey[j]+ez[j]*ez[j],0.5);
 
 			if(rij_mag<rc){
 			ci=dx_hat*ex[i]+dy_hat*ey[i]+dz_hat*ez[i];
@@ -542,12 +548,21 @@ void gbTest(double x[], double y[], double z[], double fx[],
 			eps2=1.0-0.5*xhi*(cp*cpxhi+cm*cmxhi);
 			epsilon=(pow(eps1,nu))*(pow(eps2,mu));
 
+			//potential at rij
 			rho=rij_mag-sigma+1.0;
 			rho6=1.0/pow(rho,6);
 			rho12=rho6*rho6;
 			rhoterm=4.0*(rho12-rho6);
 			drhoterm=-24.0*(2.0*rho12-rho6)/rho;
 			pot=epsilon*rhoterm;
+
+			//potential at rc
+			rho=rc-sigma+1.0;
+			rho6=1.0/pow(rho,6);
+			rho12=rho6*rho6;
+			cutterm=4.0*(rho12-rho6);
+			dcutterm=-24.0*(2.0*rho12-rho6)/rho;
+			pot=pot-epsilon*cutterm;
 
 			prefac=0.5*chi*pow(sigma,3);
 			dsig_dci=prefac*(cpchi+cmchi);
@@ -567,11 +582,11 @@ void gbTest(double x[], double y[], double z[], double fx[],
 			dpot_dcj=rhoterm*deps_dcj-epsilon*drhoterm*dsig_dcj;
 			dpot_dcij=rhoterm*deps_dcij-epsilon*drhoterm*dsig_dcij;
 
-			fxi=-dpot_drij*dx_hat+dpot_dci*(ex[i]-ci*dx_hat)/rij_mag
+			fxi=-dpot_drij*dx_hat-dpot_dci*(ex[i]-ci*dx_hat)/rij_mag
 				-dpot_dcj*(ex[j]-cj*dx_hat)/rij_mag;
-			fyi=-dpot_drij*dy_hat+dpot_dci*(ey[i]-ci*dy_hat)/rij_mag
+			fyi=-dpot_drij*dy_hat-dpot_dci*(ey[i]-ci*dy_hat)/rij_mag
 				-dpot_dcj*(ey[j]-cj*dy_hat)/rij_mag;
-			fzi=-dpot_drij*dz_hat+dpot_dci*(ez[i]-ci*dz_hat)/rij_mag
+			fzi=-dpot_drij*dz_hat-dpot_dci*(ez[i]-ci*dz_hat)/rij_mag
 				-dpot_dcj*(ez[j]-cj*dz_hat)/rij_mag;
 
 			g1x=dpot_dci*dx_hat+dpot_dcij*ex[j];
@@ -581,6 +596,27 @@ void gbTest(double x[], double y[], double z[], double fx[],
 			g2x=dpot_dcj*dx_hat+dpot_dcij*ex[i];
 			g2y=dpot_dcj*dy_hat+dpot_dcij*ey[i];
 			g2z=dpot_dcj*dz_hat+dpot_dcij*ez[i];
+
+			//Derivatives of potential at cuttoff
+			dpot_drij=epsilon*drhoterm;
+			dpot_dci=cutterm*deps_dci-epsilon*dcutterm*dsig_dci;
+			dpot_dcj=cutterm*deps_dcj-epsilon*dcutterm*dsig_dcj;
+			dpot_dcij=cutterm*deps_dcij-epsilon*dcutterm*dsig_dcij;
+			
+			fxi=fxi+dpot_dci*(ex[i]-ci*dx_hat)/rij_mag
+				+dpot_dcj*(ex[j]-cj*dx_hat)/rij_mag;
+			fyi=fyi+dpot_dci*(ey[i]-ci*dy_hat)/rij_mag
+				+dpot_dcj*(ey[j]-cj*dy_hat)/rij_mag;
+			fzi=fzi+dpot_dci*(ez[i]-ci*dz_hat)/rij_mag
+				+dpot_dcj*(ez[j]-cj*dz_hat)/rij_mag;
+
+			g1x=g1x-(dpot_dci*dx_hat+dpot_dcij*ex[j]);
+			g1y=g1y-(dpot_dci*dy_hat+dpot_dcij*ey[j]);
+			g1z=g1z-(dpot_dci*dz_hat+dpot_dcij*ez[j]);
+
+			g2x=g2x-(dpot_dcj*dx_hat+dpot_dcij*ex[i]);
+			g2y=g2y-(dpot_dcj*dy_hat+dpot_dcij*ey[i]);
+			g2z=g2z-(dpot_dcj*dz_hat+dpot_dcij*ez[i]);
 
 			fx[i]=fx[i]+fxi;
 			fy[i]=fy[i]+fyi;
@@ -607,7 +643,8 @@ void gbTest(double x[], double y[], double z[], double fx[],
 						cout<<"eps1: " << eps1 << endl;*/
 
 						errorFile(x, y, z, ex, ey, ez, g1x, g1y, g1z, g2x, g2y, g2z, dpot_dci,
-								dpot_dcij, deps_dci, deps_dcij, eps1, e1Mag, e2Mag, rij_mag, i, j);
+								dpot_dcij, deps_dci, deps_dcij, eps1, e1Mag, e2Mag, rij_mag, rho, drhoterm,
+								epsilon, i, j);
            	    }
 
 			//Calculate potential
@@ -780,9 +817,9 @@ void initVerlet(double x[], double y[], double z[], double vx[],
                     z[p]=(k+0.5+dRand(-0.1,0.1))*a;
 
 					//assign random velocities and ang. velocities
-                    tvx[p]=0;//dRand(-0.5,0.5);
-                    tvy[p]=0;//dRand(-0.5,0.5);
-                    tvz[p]=0;//dRand(-0.5,0.5);
+                    tvx[p]=dRand(-0.5,0.5);
+                    tvy[p]=dRand(-0.5,0.5);
+                    tvz[p]=dRand(-0.5,0.5);
 
                     tux[p]=dRand(-0.5,0.5);
                     tuy[p]=dRand(-0.5,0.5);
@@ -842,6 +879,13 @@ void initVerlet(double x[], double y[], double z[], double vx[],
 		ux[i]=ex[i]-dt*tux[i];
 		uy[i]=ey[i]-dt*tuy[i];
 		uz[i]=ez[i]-dt*tuz[i];
+
+		//Make orientation vector unit length
+        mag=pow(ux[i]*ux[i]+uy[i]*uy[i]+uz[i]*uz[i], 0.5);
+        ux[i]=ux[i]/mag;
+        uy[i]=uy[i]/mag;
+        uz[i]=uz[i]/mag;
+
     }
 }
 
@@ -1024,7 +1068,7 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 
 	for(int i=0; i<n; i++){
 
-		/*xNEW=2*x[i]-vx[i]+dT*dT*fx[i]/mass;
+		xNEW=2*x[i]-vx[i]+dT*dT*fx[i]/mass;
 		yNEW=2*y[i]-vy[i]+dT*dT*fy[i]/mass;
 		zNEW=2*z[i]-vz[i]+dT*dT*fz[i]/mass;
 
@@ -1038,7 +1082,7 @@ void verlet(double x[], double y[], double z[], double vx[], double vy[],
 
 		vxi=(x[i]-vx[i])/(2*dT);
 		vyi=(y[i]-vy[i])/(2*dT);
-		vzi=(z[i]-vz[i])/(2*dT);*/
+		vzi=(z[i]-vz[i])/(2*dT);
 
 		exNEW=2*ex[i]-ux[i]+dT*dT*gx[i]/I;
 		eyNEW=2*ey[i]-uy[i]+dT*dT*gy[i]/I;
